@@ -1,0 +1,16 @@
+\documentclass[tikz,border=1pt,convert=pdf2svg]{standalone}
+\usepackage{laser_cut}
+
+\begin{document}
+\begin{tikzpicture}
+	\node (origin) at (0,0) {};
+	\draw (origin) circle (4in/2);
+	\foreach \theta in {45,135,...,315} {
+		\draw (origin)++(\theta:0.77in/2) circle (\sixthirtytworadius);
+	}
+	\drawring{1in}{1.4in}{0}{8}
+	\drawring{1.5in}{1.9in}{360/64}{16}
+\end{tikzpicture}
+\end{document}
+
+

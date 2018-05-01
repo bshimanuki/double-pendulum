@@ -1,0 +1,14 @@
+\documentclass[tikz,border=1pt,convert=pdf2svg]{standalone}
+\usepackage{laser_cut}
+
+\begin{document}
+\begin{tikzpicture}
+	\node (origin) at (0,0) {};
+	\draw (origin) circle (4in/2);
+	\foreach \theta in {30,90,...,330} {
+		\draw (origin)++(\theta:34mm/2) circle (\mthreefiveradius);
+	}
+\end{tikzpicture}
+\end{document}
+
+

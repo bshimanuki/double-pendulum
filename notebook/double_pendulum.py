@@ -55,10 +55,7 @@ class Controller(VectorSystem):
         u = np.array([u, 0])
         (M, C, tauG, B) = ManipulatorDynamics(self.tree, q, qd)
 
-        # Awkward slice required on tauG to get shapes to agree --
-        # numpy likes to collapse the other dot products in this expression
-        # to vectors.
-        qdd = np.dot(np.linalg.inv(M), (tauG + np.dot(B, u) - np.dot(C, qd)))
+        qdd = np.linalg.lstsq(M, tauG + np.dot(B, u) - np.dot(C, qd))[0]
         return np.hstack([qd, qdd])
 
     def evaluate_linearized_f(self, x, u):
@@ -103,10 +100,10 @@ class Controller(VectorSystem):
         ])
         # Q in (theta_1, theta_1+theta_2, theta_1d, theta_1d+theta_2d) basis
         Q = np.array([
-            [30, 0, 0, 0],
-            [0, 500, 0, 0],
-            [0, 0, 30, 0],
-            [0, 0, 0, 200],
+            [10, 0, 0, 0],
+            [0, 200, 0, 0],
+            [0, 0, 10, 0],
+            [0, 0, 0, 80],
         ])
         Q = np.dot(rot.T, np.dot(Q, rot))
         R = np.array([[1e-1]])
@@ -135,54 +132,113 @@ class Controller(VectorSystem):
             u = u_err - tau_sys[0]
         return u
 
+    def E(self, state):
+        q = state[:2]
+        v = state[-2:]
+        g, m1, l1, lc1, m2, l2, lc2 = self.g, self.m1, self.l1, self.lc1, self.m2, self.l2, self.lc2
+        (M, Cv, tauG, B) = ManipulatorDynamics(self.tree, q, v)
+
+        theta_4 = m1 * lc1 + m2 * l1
+        theta_5 = m2 * lc2
+        E = 1./2 * np.dot(v.T, np.dot(M, v)) + theta_4 * g * -cos(q[0]) + theta_5 * g * -cos(q[0]+q[1])
+
+        return E
+
+    def ddE_dtdu(self, state):
+        q = state[:2]
+        v = state[-2:]
+        (M, Cv, tauG, B) = ManipulatorDynamics(self.tree, q, v)
+        ddv_dtdu = np.linalg.lstsq(M, B)[0][:,0]
+        ddE_dtdu = 1./2 * (np.dot(ddv_dtdu.T, np.dot(M, v)) + np.dot(v.T, B))
+        return ddE_dtdu
+
+    def swingup_controller(self, state):
+        q = state[:2]
+        v = state[-2:]
+        g, m1, l1, lc1, m2, l2, lc2 = self.g, self.m1, self.l1, self.lc1, self.m2, self.l2, self.lc2
+        (M, Cv, tauG, B) = ManipulatorDynamics(self.tree, q, v)
+
+        E = self.E(state)
+        E_top = self.E(np.array([np.pi, 0, 0, 0]))
+        E_curl = E - E_top
+
+        ddE_dtdu = self.ddE_dtdu(state)
+        ddE_dtdu = ddE_dtdu[0]
+        if ddE_dtdu == 0:
+            ddE_dtdu = 1
+
+        # state2 = np.array(state)
+        # state2[3] = 0
+        # E2 = self.E(state2)
+        # E2_curl = E - E2
+
+        ddv2_dtdu = np.linalg.lstsq(M, B)[0][1,0]
+        if ddv2_dtdu == 0:
+            ddv2_dtdu = 1
+
+        K = 1
+        K2 = 0.1
+
+        tau = -K * E_curl / ddE_dtdu - K2 * v[1] / ddv2_dtdu
+
+        max_tau = 10
+        tau = np.clip(tau, -max_tau, max_tau)
+        return tau
+
+    def xin_controller(self, state):
+        '''
+        From Xin et al. Broken implementation.
+        '''
+        g, m1, l1, lc1, m2, l2, lc2 = self.g, self.m1, self.l1, self.lc1, self.m2, self.l2, self.lc2
+        q = state[:2]
+        v = state[-2:]
+
+        (M, Cv, tauG, B) = ManipulatorDynamics(self.tree, q, v)
+
+        theta_1 = M[0,0] - M[0,1] - M[1,0] + M[1,1]
+        theta_2 = M[1,1]
+        # theta_3 = (M[0,1] - theta_2) / cos(q[1])
+        # theta_5 = tauG[1] / (g * sin(q[0] + q[1]))
+        # theta_4 = (tauG[0] - tauG[1]) / (g * sin(q[0]))
+        theta_3 = m2 * l1 * (l2/2)
+        theta_4 = m1 * (l1/2) + m2 * l1
+        theta_5 = m2 * (l2/2)
+
+        E = 1./2 * np.dot(v.T, np.dot(M, v)) + theta_4 * g * -cos(q[0]) + theta_5 * g * -cos(q[0]+q[1])
+        E_top = theta_4 * g + theta_5 * g
+        E_curl = E - E_top
+
+        k_p = 5.5
+        k_d = 0.5
+        k_e = 1
+
+        condition =  abs(E_curl) < min(2 * theta_4 * g, 2 * theta_5 * g, k_d / (k_e * theta_1))
+
+        f = theta_2 * theta_3 * (v[0]+v[1])**2 * sin(q[1]) \
+            + theta_3**2 * v[0]**2 * cos(q[1]) * sin(q[1]) \
+            - theta_2 * theta_4 * g * sin(q[0]) \
+            + theta_3 * theta_5 * g * cos(q[1]) * sin(q[0]+q[1])
+
+        q0_d = math.pi
+        q_curl = q[0] - q0_d
+
+        tau = (-k_d * f - (theta_1 * theta_2 - theta_3**2 * cos(q[1])**2) * (v[0] + k_p * q_curl)) \
+            / ((theta_1 * theta_2 - theta_3**2 * cos(q[1])**2) * k_e * E_curl + k_d * theta_2)
+
+        p = np.dot(M, v)
+        du = -tauG * v
+
+        return tau
+
+
     def _GetTorque(self, state):
         g, m1, l1, lc1, m2, l2, lc2 = self.g, self.m1, self.l1, self.lc1, self.m2, self.l2, self.lc2
         # Extract manipulator dynamics.
         q = state[:2]
         v = state[-2:]
 
-        if False:
-            (M, Cv, tauG, B) = ManipulatorDynamics(self.tree, q, v)
-
-            theta_1 = M[0,0] - M[0,1] - M[1,0] + M[1,1]
-            theta_2 = M[1,1]
-            # theta_3 = (M[0,1] - theta_2) / cos(q[1])
-            # theta_5 = tauG[1] / (g * sin(q[0] + q[1]))
-            # theta_4 = (tauG[0] - tauG[1]) / (g * sin(q[0]))
-            theta_3 = m2 * l1 * (l2/2)
-            theta_4 = m1 * (l1/2) + m2 * l1
-            theta_5 = m2 * (l2/2)
-
-            E = 1./2 * np.dot(v.T, np.dot(M, v)) + theta_4 * g * -cos(q[0]) + theta_5 * g * -cos(q[0]+q[1])
-            E_top = theta_4 * g + theta_5 * g
-            E_curl = E - E_top
-
-            k_p = 5.5
-            k_d = 0.5
-            k_e = 1
-
-            if abs(E_curl) < min(2 * theta_4 * g, 2 * theta_5 * g, k_d / (k_e * theta_1)):
-                # stability controller
-
-                f = theta_2 * theta_3 * (v[0]+v[1])**2 * sin(q[1]) \
-                    + theta_3**2 * v[0]**2 * cos(q[1]) * sin(q[1]) \
-                    - theta_2 * theta_4 * g * sin(q[0]) \
-                    + theta_3 * theta_5 * g * cos(q[1]) * sin(q[0]+q[1])
-
-                q0_d = math.pi
-                q_curl = q[0] - q0_d
-
-                tau = (-k_d * f - (theta_1 * theta_2 - theta_3**2 * cos(q[1])**2) * (v[0] + k_p * q_curl)) \
-                    / ((theta_1 * theta_2 - theta_3**2 * cos(q[1])**2) * k_e * E_curl + k_d * theta_2)
-
-                p = np.dot(M, v)
-                du = -tauG * v
-
-            else:
-                # swing up  controller
-                tau = 0
-
-        tau = self.lqr_controller(state)
+        # tau = self.lqr_controller(state)
+        tau = self.swingup_controller(state)
 
 
         tau_limit = 50

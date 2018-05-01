@@ -1,0 +1,72 @@
+\RequirePackage{tikz}
+
+\usetikzlibrary{positioning}
+\usetikzlibrary{calc}
+\usetikzlibrary{fit}
+\usetikzlibrary{backgrounds}
+
+\tikzset{
+	every picture/.style={
+		x=1in,
+		y=1in,
+		line width=0.1pt,
+		inner sep=0,
+		outer sep=0,
+	},
+	plate/.style={
+		draw,
+		shape=rectangle,
+		rounded corners=0.25in,
+		minimum size=6in,
+		anchor=center,
+	},
+	base/.style={
+		draw,
+		shape=rectangle,
+		rounded corners=0.25in,
+		minimum width=6.75in,
+		minimum height=5.25in,
+		anchor=center,
+	},
+}
+
+\def\mthreefiveradius{3mm/2}
+\def\sixthirtytworadius{0.139in/2}
+\def\sixthirtytwoheadradius{0.26in/2}
+\def\standoffdistance{{2.75*sqrt(2)}}
+\def\bearingradius{{0.475in/2}} % ball bearing hole
+
+\def\magnetdistance{{1.5in*sqrt(2)}}
+\def\magnetradius{1.26in/2}
+
+\newcommand\makestandoffs[2][\sixthirtytworadius]{
+	\foreach \theta in {45,135,...,315} {
+		\draw (#2)++(\theta:\standoffdistance) circle (#1); % standoffs
+	}
+	% \foreach \x in {-2.75,2.75} {
+		% \foreach \y in {-2.625,2.625} {
+			% \draw (#2)++(\x,\y) circle (#1); % standoffs
+		% }
+	% }
+}
+
+\newcommand\makebasestandoffs[2][\sixthirtytworadius]{
+	\foreach \x in {-3.125,3.125} {
+		\foreach \y in {-2.375,2.375} {
+		% \foreach \y in {-1.875,1.875} {
+			\draw (#2)++(\x,\y) circle (#1); % standoffs
+		}
+	}
+}
+
+\newcommand\drawhole[5][(0,0)]{ % r_i, r_o, theta_0, theta_1
+	\begin{scope}[shift={(#1)}]
+		\draw (#4:#2) arc (#4:#5:#2) -- (#5:#3) arc (#5:#4:#3) -- cycle;
+	\end{scope}
+}
+
+\newcommand\drawring[5][(0,0)]{ % r_i, r_o, theta_0, n
+	\foreach \i in {1,...,#5} {
+		\drawhole[#1]{#2}{#3}{#4+360/#5*\i}{#4+180/#5+360/#5*\i}
+	}
+}
