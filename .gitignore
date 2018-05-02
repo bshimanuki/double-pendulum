@@ -1,6 +1,7 @@
 /.ipynb_checkpoints
 *.pdf
 *.pyc
+*.svg
 
 *.hex
 *.lst

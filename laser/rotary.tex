@@ -4,7 +4,8 @@
 \begin{document}
 \begin{tikzpicture}
 	\node (origin) at (0,0) {};
-	\draw (origin) circle (4in/2);
+	\draw (origin) circle (4in/2); % size
+	\draw (origin) circle (6mm/2); % center
 	\foreach \theta in {45,135,...,315} {
 		\draw (origin)++(\theta:0.77in/2) circle (\sixthirtytworadius);
 	}

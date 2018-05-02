@@ -246,11 +246,12 @@ wait_loop:
 	djnz acc, wait_loop
 ret
 
+; 0xf2 is theta
 .org s_theta1
-.db "t1=", 0x00
+.db 0xf2, "1=", 0x00
 .org s_theta2
-.db "t2=", 0x00
+.db 0xf2, "2=", 0x00
 .org s_dtheta1
-.db "d1=", 0x00
+.db 0xf2, "1'=", 0x00
 .org s_dtheta2
-.db "d2=", 0x00
+.db 0xf2, "2'=", 0x00

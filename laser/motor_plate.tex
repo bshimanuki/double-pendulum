@@ -1,13 +1,23 @@
 \documentclass[tikz,border=1pt,convert=pdf2svg]{standalone}
 \usepackage{laser_cut}
 
+\newcommand\spacing{\ledradius+0.2mm}
+\newcommand\drawpair[2]{
+	\draw (#1:#2)++(#1+90:\spacing) circle (\ledradius);
+	\draw (#1:#2)++(#1-90:\spacing) circle (\ledradius);
+}
+
 \begin{document}
 \begin{tikzpicture}
 	\node (origin) at (0,0) {};
-	\draw (origin) circle (4in/2);
+	\draw (origin) circle (4in/2); % size
+	\draw (origin) circle (12mm/2); % center
 	\foreach \theta in {30,90,...,330} {
 		\draw (origin)++(\theta:34mm/2) circle (\mthreefiveradius);
 	}
+	\drawpair{90}{1.2in}
+	\drawpair{360/32}{1.2in}
+	\drawpair{-90}{1.7in}
 \end{tikzpicture}
 \end{document}
 
