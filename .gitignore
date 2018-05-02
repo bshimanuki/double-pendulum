@@ -2,6 +2,9 @@
 *.pdf
 *.pyc
 
+*.hex
+*.lst
+
 # LaTeX compiled files
 *.aux
 *.bbl
