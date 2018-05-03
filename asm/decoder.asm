@@ -3,7 +3,9 @@
 .equ porta, 0xfe20
 .equ portb, 0xfe21
 .equ portc, 0xfe22
-.equ gray_bits, 0x07
+.equ num_gray_bits, 0x03
+.flag gray_msb, acc.2
+.equ gray_bits, (1 << num_gray_bits) - 1
 .equ theta_bits, 0x3f
 .equ max_skip, 0x02
 
@@ -34,6 +36,9 @@ loop:
 	sjmp loop
 
 init:
+	mov r2, #0x00
+	mov r3, #0x00
+
 	; set timer 0 in mode 2 (8 bit autoreload)
 	mov tmod, #02h
 	mov th0, #0xff
@@ -41,11 +46,11 @@ init:
 
 	; set up 8255
 	mov dptr, #control_address
-	mov a, #0x90; port A is input, ports B and C are output
+	mov a, #0x82; port B is input, ports A and C are output
 	movx @dptr, a
 
 	; set initial state
-	mov dptr, #portc
+	mov dptr, #portb
 	movx a, @dptr
 	lcall gray2bin
 	mov r6, a
@@ -57,8 +62,9 @@ init:
 
 t0isr:
 	; read input pins
-	mov dptr, #portc
+	mov dptr, #portb
 	movx a, @dptr
+	mov p1, a
 	lcall gray2bin
 	mov r7, a
 
@@ -66,33 +72,40 @@ t0isr:
 	subb a, r6
 	anl a, #gray_bits
 	clr c
-	subb a, #max_skip
-	jc ignore
+	subb a, #max_skip+1
+	jc update_angle
 
 	mov a, r6
 	clr c
 	subb a, r7
 	anl a, #gray_bits
 	clr c
-	subb a, #max_skip
-	jc ignore
+	subb a, #max_skip+1
+	jc update_angle
 
-	; difference is in range, switch to new angle
-	mov a, r7
-	clr c
-	subb a, r6 ; get offset
-	add a, r2 ; add to current angle
-	anl a, #theta_bits
-	mov r2, a ; store
-	mov r6, 7 ; move new decoded gray code to old
+	sjmp done_angle
 
-	ignore:
+	update_angle:
+		; difference is in range, switch to new angle
+		mov a, r7
+		clr c
+		subb a, r6 ; get offset
+		jnb gray_msb, unsign_extend
+		sign_extend:
+			orl a, #-gray_bits-1 ; logical inversion of gray_bits
+			sjmp sign_extend_done
+		unsign_extend:
+			anl a, #gray_bits
+		sign_extend_done:
+		add a, r2 ; add to current angle
+		anl a, #theta_bits
+		mov r2, a ; store
+		mov r6, 7 ; move new decoded gray code to old
 
-	mov p1, r6
-	djnz r1, skip_lcd
-
-
-	skip_lcd:
+	done_angle:
+		djnz r1, skip_lcd
+		lcall lcd
+		skip_lcd:
 
 	reti
 
@@ -194,6 +207,8 @@ latch:
 	ret
 
 print_chr:
+	push dph
+	push dpl
 	mov dptr, #porta
 	movx @dptr, a ; write charater to LCD data port
 	mov dptr, #portc
@@ -202,6 +217,8 @@ print_chr:
 	lcall wait
 	mov a, #0x10
 	movx @dptr, a ; lower enable line
+	pop dpl
+	pop dph
 	ret
 
 ; print the value of acc
@@ -225,6 +242,7 @@ print_value:
 
 ; print the string at dptr to the LCD
 print:
+	push 0
 	mov r0, #0x00
 	print_loop:
 		mov a, r0
@@ -238,6 +256,7 @@ print:
 		subb a, #24d ; max string length
 		jnz print_loop
 	print_done:
+	pop 0
 	ret
 
 wait:
