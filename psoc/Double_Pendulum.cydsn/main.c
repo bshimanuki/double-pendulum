@@ -11,16 +11,25 @@
 */
 #include <project.h>
 
-int main()
+CY_ISR(RX_INT)
 {
-    CyGlobalIntEnable; /* Enable global interrupts. */
+    LCD_PutChar(UART_ReadRxData());     // RX ISR
+}
 
-    /* Place your initialization/startup code here (e.g. MyInst_Start()) */
+int main()
+{	
+	LCD_Start();					    // initialize lcd
+	LCD_ClearDisplay();
+    
+    CyGlobalIntEnable;
+    rx_int_StartEx(RX_INT);             // start RX interrupt (look for CY_ISR with RX_INT address)
+                                        // for code that writes received bytes to LCD.
+    
+    UART_Start();                       // initialize UART
+    UART_ClearRxBuffer();
 
     for(;;)
-    {
-        /* Place your application code here. */
-    }
+    {}
 }
 
 /* [] END OF FILE */

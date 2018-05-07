@@ -8,6 +8,7 @@
 .equ gray_bits, (1 << num_gray_bits) - 1
 .equ theta_bits, 0x3f
 .equ max_skip, 0x02
+.equ stack, 0x2f
 
 .equ s_theta1, 0x7000
 .equ s_theta2, 0x7100
@@ -16,10 +17,12 @@
 
 ; registers
 ; r1 = decrement to output to lcd
-; r2 = theta_1
-; r3 = theta_2
-; r4 = dtheta_1
-; r5 = dtheta_2
+; registers r2-r7 are different for theta_1 and theta_2
+; theta_1 is in register bank 0, theta_2 is in register bank 1
+; r2 = low byte of counter since last change
+; r3 = high byte of counter since last change
+; r4 = theta
+; r5 = 1/dtheta
 ; r6 = last gray code
 ; r7 = current gray code
 
@@ -36,8 +39,7 @@ loop:
 	sjmp loop
 
 init:
-	mov r2, #0x00
-	mov r3, #0x00
+	mov sp, #stack ; reinitialize stack pointer
 
 	; set timer 0 in mode 2 (8 bit autoreload)
 	mov tmod, #02h
@@ -52,12 +54,27 @@ init:
 	; set initial state
 	mov dptr, #portb
 	movx a, @dptr
-	lcall gray2bin
-	mov r6, a
+	lcall init_rotary
+	setb rs0 ; switch to register bank 1
+	mov a, #0x00 ; TODO: change to port for theta2
+	lcall init_rotary
+	clr rs0
 
 	lcall init_lcd
 
 	setb tr0 ; start timer
+	ret
+
+; initialize variables for the rotary encoder specified by the register bank
+init_rotary:
+	mov r2, #0x00
+	mov r3, #0x00
+	mov r4, #0x00
+	mov r5, #0x00
+
+	lcall gray2bin
+	mov r6, a
+
 	ret
 
 t0isr:
@@ -65,6 +82,19 @@ t0isr:
 	mov dptr, #portb
 	movx a, @dptr
 	mov p1, a
+	lcall update_theta
+	setb rs0
+	mov a, #0x00 ; TODO: update for theta_2
+	lcall update_theta
+	clr rs0
+
+	djnz r1, skip_lcd
+	lcall lcd
+	skip_lcd:
+
+	reti
+
+update_theta:
 	lcall gray2bin
 	mov r7, a
 
@@ -73,7 +103,7 @@ t0isr:
 	anl a, #gray_bits
 	clr c
 	subb a, #max_skip+1
-	jc update_angle
+	jc dangle_within_limits
 
 	mov a, r6
 	clr c
@@ -81,11 +111,10 @@ t0isr:
 	anl a, #gray_bits
 	clr c
 	subb a, #max_skip+1
-	jc update_angle
-
+	jc dangle_within_limits
 	sjmp done_angle
 
-	update_angle:
+	dangle_within_limits:
 		; difference is in range, switch to new angle
 		mov a, r7
 		clr c
@@ -103,11 +132,7 @@ t0isr:
 		mov r6, 7 ; move new decoded gray code to old
 
 	done_angle:
-		djnz r1, skip_lcd
-		lcall lcd
-		skip_lcd:
-
-	reti
+	ret
 
 lcd:
 	lcall reset_lcd
