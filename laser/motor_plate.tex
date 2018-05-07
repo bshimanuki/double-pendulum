@@ -12,6 +12,8 @@
 	\node (origin) at (0,0) {};
 	\draw (origin) circle (4in/2); % size
 	\draw (origin) circle (12mm/2); % center
+	\draw (1in,-0.8in+0.25in) circle (\sixthirtytworadius); % right frame hole
+	\draw (-1in,-0.8in+0.25in) circle (\sixthirtytworadius); % left frame hole
 	\foreach \theta in {30,90,...,330} {
 		\draw (origin)++(\theta:31mm/2) circle (\mthreefiveradius);
 	}

@@ -26,3 +26,14 @@
 *.synctex.gz(busy)
 *.toc
 *.x.gnuplot
+
+# PSoC Creator extra files
+codegentemp
+Generated_Source
+Export
+CortexM3
+*.rpt
+*.svd
+*.cyfit
+*.cycdx
+*_timing.html
