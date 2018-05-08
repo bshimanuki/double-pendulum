@@ -20,7 +20,7 @@
 ; registers r2-r7 are different for theta_1 and theta_2
 ; theta_1 is in register bank 0, theta_2 is in register bank 1
 ; r2 = low byte of counter since last change
-; r3 = high byte of counter since last change
+; r3 = high byte of counter since last change, r3.7 determines whether to increment/decrement
 ; r4 = theta
 ; r5 = 1/dtheta
 ; r6 = last gray code
@@ -94,12 +94,41 @@ t0isr:
 
 	reti
 
+; expects gray code in acc and rs0 to select which theta to update
 update_theta:
 	lcall gray2bin
 	mov r7, a
+	mov a, r3
+	anl a, #0x80
+	jnz decrement_counter
+	increment_counter:
+		; increment counter for time since last change
+		mov a, r2
+		add a, #0x01
+		mov r2, a
+		jnc done_dangle_counter
+		mov a, r3
+		add a, #0x01
+		jb ov, done_dangle_counter
+		mov r3, a
+		sjmp done_dangle_counter
+	decrement_counter:
+		; decrement counter for time since last change
+		mov a, r2
+		clr c
+		subb a, #0x01
+		mov r2, a
+		jnc done_dangle_counter
+		mov a, r3
+		subb a, #0x00 ; 0 because c is set
+		jb ov, done_dangle_counter
+		mov r3, a
+	done_dangle_counter:
 
+	mov a, r7
 	clr c
 	subb a, r6
+	jz done_angle ; short circuit when no change
 	anl a, #gray_bits
 	clr c
 	subb a, #max_skip+1
@@ -120,16 +149,67 @@ update_theta:
 		clr c
 		subb a, r6 ; get offset
 		jnb gray_msb, unsign_extend
-		sign_extend:
+		sign_extend: ; moving in negative direction
 			orl a, #-gray_bits-1 ; logical inversion of gray_bits
+			mov r5, #0x80 ; moving in negative direction
 			sjmp sign_extend_done
-		unsign_extend:
+		unsign_extend: ; moving in positive direction
 			anl a, #gray_bits
+			mov r5, #0x00 ; moving in positive direction
 		sign_extend_done:
-		add a, r2 ; add to current angle
+		add a, r4 ; add to current angle
 		anl a, #theta_bits
-		mov r2, a ; store
+		mov r4, a ; store
 		mov r6, 7 ; move new decoded gray code to old
+
+		; compute dtheta
+		mov a, r3
+		xrl a, r5
+		jnb acc.7, dangle_same_direction
+		dangle_reverse_direction:
+			mov a, r5
+			mov r5, #0x00
+			jz positive_counter
+			sjmp negative_counter
+		dangle_same_direction:
+			; calculate 1/dtheta as sign bit, lower 3 bits of r3, upper 4 bits of r2
+			mov a, r3
+			anl a, #0xf8
+			jz positive_dangle
+			jnb acc.7, positive_dangle_max
+			xrl a, #0xf8
+			jz negative_dangle
+			negative_dangle_max:
+				mov r5, #0x80
+				sjmp done_dangle
+			positive_dangle_max:
+				mov r5, #0x7f
+				sjmp done_dangle
+			negative_dangle:
+			positive_dangle:
+			mov a, r3
+			anl a, #0x87 ; sign bit and 3 lower bits
+			mov b, #0x11
+			mul ab ; copy acc.0-acc.2 to acc.4-acc.6
+			anl a, #0xf0
+			mov b, a
+			mov a, r2
+			anl a, #0xf0
+			swap a
+			orl a, b
+			mov r5, a
+
+			done_dangle:
+				mov a, r3
+				jb acc.7, negative_counter
+				positive_counter:
+					mov r3, #0x00
+					mov r2, #0x10
+					sjmp done_reset_counter
+				negative_counter:
+					mov r3, #0xff
+					mov r2, #0xff
+				done_reset_counter:
 
 	done_angle:
 	ret
@@ -140,17 +220,17 @@ lcd:
 	; print theta1 to LCD
 	mov dptr, #s_theta1
 	lcall print
-	mov a, r2
+	mov a, r4
 	lcall print_value
 
 	; print space to LCD
 	mov a, #' '
 	lcall print_chr
 
-	; print theta2 to LCD
-	mov dptr, #s_theta2
+	; print dtheta2 to LCD
+	mov dptr, #s_dtheta1
 	lcall print
-	mov a, r3
+	mov a, r5
 	lcall print_value
 
 	ret
