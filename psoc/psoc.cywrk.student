@@ -300,6 +300,8 @@
 <name v=".\Double_Pendulum.cydsn\TopDesign\TopDesign.cysch" />
 <name v=".\Double_Pendulum.cydsn\Double_Pendulum.cydwr" />
 <name v=".\Double_Pendulum.cydsn\main.c" />
+<name v=".\Double_Pendulum.cydsn\cyapicallbacks.h" />
+<name v=".\Double_Pendulum.cydsn\Generated_Source\PSoC5\LCD.h" />
 </OpenDocs>
 <config v="" />
 <AutoUpdate v="true" />

@@ -164,6 +164,15 @@ update_theta:
 	sjmp done_angle
 
 	dangle_within_limits:
+		jb rs0, angle1
+		angle0:
+			mov a, #0x00
+			sjmp send_rotary ; send which rotary to PSoC
+		angle1:
+			mov a, #0x01
+		send_rotary:
+			lcall sndchr
+
 		; difference is in range, switch to new angle
 		mov a, r7
 		clr c
@@ -181,6 +190,8 @@ update_theta:
 		anl a, #theta_bits
 		mov r4, a ; store
 		mov r6, 7 ; move new decoded gray code to old
+
+		lcall sndchr ; send theta to PSoC
 
 		; compute dtheta
 		mov a, r3
@@ -230,6 +241,8 @@ update_theta:
 					mov r3, #0xff
 					mov r2, #0xff
 				done_reset_counter:
+		mov a, r5
+		lcall sndchr
 
 	done_angle:
 	ret
@@ -281,6 +294,14 @@ gray2bin:
 	g2b0:
 	ret
 
+; send character over serial port
+sndchr:
+	clr scon.1
+	mov sbuf, a
+	txloop:
+		jnb scon.1, txloop ; wait until previous character has been sent
+	ret
+
 init_lcd:
 	; set display for 8 bit communication, 5x7 character set
 	mov dptr, #portc
@@ -320,7 +341,6 @@ reset_lcd:
 	lcall wait
 
 	ret
-
 
 latch:
 	mov dptr, #portc
@@ -385,10 +405,10 @@ print:
 	ret
 
 wait:
-mov a, #0x00
-wait_loop:
-	djnz acc, wait_loop
-ret
+	mov a, #0x00
+	wait_loop:
+		djnz acc, wait_loop
+	ret
 
 ; 0xf2 is theta
 .org s_theta1
