@@ -7,8 +7,9 @@
 .flag gray_msb, acc.2
 .equ gray_bits, (1 << num_gray_bits) - 1
 .equ theta_bits, 0x3f
-.equ max_skip, 0x02
+.equ max_skip, 0x03
 .equ stack, 0x2f
+.equ initial_update, 0x00 ; bit to detect inital code, starts low and set on first run
 
 .equ s_theta1, 0x7000
 .equ s_theta2, 0x7100
@@ -60,6 +61,8 @@ init:
 	mov a, #0x82; port B is input, ports A and C are output
 	movx @dptr, a
 
+	lcall init_lcd
+
 	; set initial state
 	mov dptr, #portb
 	movx a, @dptr
@@ -68,8 +71,7 @@ init:
 	mov a, #0x00 ; TODO: change to port for theta2
 	lcall init_rotary
 	clr rs0
-
-	lcall init_lcd
+	clr initial_update
 
 	setb tr0 ; start timer
 	ret
@@ -145,6 +147,8 @@ update_theta:
 		mov r3, a
 	done_dangle_counter:
 
+	jnb initial_update, dangle_within_limits ; make sure to send update on first run
+
 	mov a, r7
 	clr c
 	subb a, r6
@@ -164,14 +168,8 @@ update_theta:
 	sjmp done_angle
 
 	dangle_within_limits:
-		jb rs0, angle1
-		angle0:
-			mov a, #0x00
-			sjmp send_rotary ; send which rotary to PSoC
-		angle1:
-			mov a, #0x01
-		send_rotary:
-			lcall sndchr
+		setb initial_update
+		lcall send_rotary
 
 		; difference is in range, switch to new angle
 		mov a, r7
@@ -245,6 +243,17 @@ update_theta:
 		lcall sndchr
 
 	done_angle:
+	ret
+
+send_rotary:
+	jb rs0, angle1
+	angle0:
+		mov a, #0x00
+		sjmp send_rotary_chr ; send which rotary to PSoC
+	angle1:
+		mov a, #0x01
+	send_rotary_chr:
+		lcall sndchr
 	ret
 
 lcd:

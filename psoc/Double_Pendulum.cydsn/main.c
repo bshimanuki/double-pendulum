@@ -41,17 +41,17 @@ CY_ISR(RX_INT)
 void update(){
     uint8 _theta1 = theta1;
     int8 _dtheta1 = dtheta1;
-    float k0 = 1;
+    float k0 = 8;
     float k1 = 0.1;
-    float q0 = _theta1 * M_PI / 32;
+    float q0 = _theta1 * M_PI / 32 - M_PI;
     float q1;
-    if(_dtheta1) q1 = 1 / (_dtheta1 / 225.); // 225 = 11.0592e6/12/256/16
+    if(_dtheta1) q1 = 1 / (_dtheta1 / 225.) * (M_PI / 32); // 225 = 11.0592e6/12/256/16
     else q1 = 0;
 
     float tau = -k0 * q0 + -k1 * q1;
     float tau_limit = 5;
     float duty = 1./2 + tau / (2*tau_limit);
-    uint16 count;
+    uint8 count;
     if(duty >= 1) count = 255;
     else if(duty <= 0) count = 0;
     else count = 255 * duty;
@@ -59,18 +59,31 @@ void update(){
     PWM_WriteCompare(count);
 
     LCD_ClearDisplay();
-    sprintf(s_print, "t1=%d dt1=%d c=%d", theta1, dtheta1, count);
+    sprintf(s_print, "%d t1=%d dt1=%d", count, _theta1, _dtheta1);
+    LCD_PrintString(s_print);
+    LCD_Position(1, 0);
+    sprintf(s_print, "q0=%.2f q1=%.2f", q0, q1);
     LCD_PrintString(s_print);
 }
 
+CY_ISR(BUTTON_INT)
+{
+    PWM_WriteCompare(0xc0);
+}
+
 int main()
-{	
+{
+    Clock_Start();
 	LCD_Start();					    // initialize lcd
 	LCD_ClearDisplay();
+    PWM_Start();
     
     CyGlobalIntEnable;
     rx_int_StartEx(RX_INT);             // start RX interrupt (look for CY_ISR with RX_INT address)
                                         // for code that writes received bytes to LCD.
+
+    button_int_StartEx(BUTTON_INT);
+    PWM_WriteCompare(0x80);
 
     UART_Start();                       // initialize UART
     UART_ClearRxBuffer();
