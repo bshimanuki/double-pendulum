@@ -172,14 +172,19 @@ class Controller(VectorSystem):
         # E2 = self.E(state2)
         # E2_curl = E - E2
 
-        ddv2_dtdu = np.linalg.lstsq(M, B)[0][1,0]
-        if ddv2_dtdu == 0:
-            ddv2_dtdu = 1
+        ddv0_dtdu, ddv1_dtdu = np.linalg.lstsq(M, B)[0][:,0]
+        if ddv0_dtdu == 0:
+            ddv0_dtdu = 1
+        if ddv1_dtdu == 0:
+            ddv1_dtdu = 1
+        q0bar = np.unwrap(q - np.pi)[0] # unwrap only works with arrays, so delay indexing...
 
-        K = 1
-        K2 = 0.1
+        K_E = 1
+        K_q0 = 0.0005
+        K_v0 = 0#0.0001
+        K_v1 = 0.1
 
-        tau = -K * E_curl / ddE_dtdu - K2 * v[1] / ddv2_dtdu
+        tau = -K_E * E_curl / ddE_dtdu - (K_q0 * np.sin(q0bar)*np.exp(-q0bar**2) + K_v0 * v[0]) / ddv0_dtdu - K_v1 * v[1] / ddv1_dtdu
 
         max_tau = 10
         tau = np.clip(tau, -max_tau, max_tau)
@@ -245,7 +250,6 @@ class Controller(VectorSystem):
         tau = np.clip(tau, -tau_limit, tau_limit)
         # print(tau)
         return tau
-        # return np.sign(np.dot([1,-1], np.dot(M, v)))
 
     def _DoCalcVectorOutput(self, context, double_pend_state, unused, torque):
         # Extract manipulator dynamics.
