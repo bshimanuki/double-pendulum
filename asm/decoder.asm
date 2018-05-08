@@ -16,6 +16,7 @@
 .equ s_dtheta2, 0x7300
 
 ; registers
+; r0 = general register
 ; r1 = decrement to output to lcd
 ; registers r2-r7 are different for theta_1 and theta_2
 ; theta_1 is in register bank 0, theta_2 is in register bank 1
@@ -36,14 +37,22 @@ ljmp t0isr
 start:
 lcall init
 loop:
+	mov a, r1
+	jnz loop
+	lcall lcd
 	sjmp loop
 
 init:
 	mov sp, #stack ; reinitialize stack pointer
 
 	; set timer 0 in mode 2 (8 bit autoreload)
-	mov tmod, #02h
-	mov th0, #0xff
+	; set timer 1 in mode 2 (8 bit autoreload)
+	mov tmod, #22h
+	mov th0, #0x00
+	mov th1, #0xfd ; set 9600 baud
+	mov scon, #0x50 ; set serial for 8 bit data
+	setb it0 ; set tcon.0 for edge triggered interrupts
+	setb tr1 ; start timer 1 for serial communication
 	mov ie, #82h
 
 	; set up 8255
@@ -78,10 +87,15 @@ init_rotary:
 	ret
 
 t0isr:
+	setb p1.0
+	push dph
+	push dpl
+	push acc
+	push b
 	; read input pins
 	mov dptr, #portb
 	movx a, @dptr
-	mov p1, a
+	; mov p1, a
 	lcall update_theta
 	setb rs0
 	mov a, #0x00 ; TODO: update for theta_2
@@ -89,8 +103,14 @@ t0isr:
 	clr rs0
 
 	djnz r1, skip_lcd
-	lcall lcd
+	;lcall lcd
 	skip_lcd:
+
+	pop b
+	pop acc
+	pop dpl
+	pop dph
+	clr p1.0
 
 	reti
 
