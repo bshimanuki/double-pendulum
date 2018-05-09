@@ -13,6 +13,8 @@
 #include <stdio.h>
 #include <math.h>
 
+#define SEGMENTS 128
+
 uint8 serial_buffer[3];
 int sbuf_i = 0;
 uint8 new_data = 0;
@@ -43,9 +45,9 @@ void update(){
     int8 _dtheta1 = dtheta1;
     float k0 = 8;
     float k1 = 0.1;
-    float q0 = _theta1 * M_PI / 32 - M_PI;
+    float q0 = _theta1 * 2*M_PI / SEGMENTS - M_PI;
     float q1;
-    if(_dtheta1) q1 = 1 / (_dtheta1 / 225.) * (M_PI / 32); // 225 = 11.0592e6/12/256/16
+    if(_dtheta1) q1 = 1 / (_dtheta1 / 225.) * (2*M_PI / SEGMENTS); // 225 = 11.0592e6/12/256/16
     else q1 = 0;
 
     float tau = -k0 * q0 + -k1 * q1;
@@ -74,8 +76,8 @@ CY_ISR(BUTTON_INT)
 int main()
 {
     Clock_Start();
-	LCD_Start();					    // initialize lcd
-	LCD_ClearDisplay();
+    LCD_Start();                        // initialize lcd
+    LCD_ClearDisplay();
     PWM_Start();
     
     CyGlobalIntEnable;

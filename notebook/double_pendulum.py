@@ -16,18 +16,12 @@ from underactuated import (FindResource, ManipulatorDynamics,
 
 _LINEARIZE_GRAVITY = False
 
+def mod_angle(x):
+    return np.mod(x + np.pi, 2*np.pi) - np.pi
+
 class Controller(VectorSystem):
-    """ Defines a feedback controller for the double pendulum.
-
-    The controller applies torques at the joints in order to
-    1) cancel out the dynamics of the double pendulum,
-    2) make the first joint swing with the dynamics of a single pendulum, and
-    3) drive the second joint towards zero.
-
-    The magnitude of gravity for the imposed single pendulum dynamics is taken
-    as a constructor argument.  So you can do fun things like pretending that
-    gravity is zero, or even inverting gravity!
-
+    """
+    Defines a feedback controller for the double pendulum.
     """
 
     def __init__(self, rigid_body_tree, gravity):
@@ -61,7 +55,7 @@ class Controller(VectorSystem):
     def evaluate_linearized_f(self, x, u):
         x = np.array(x)
         x[:2] -= np.array([math.pi, 0])
-        x[:2] = np.unwrap(x[:2])
+        x[:2] = mod_angle(x[:2])
         A, B = self._GetLinearizedDynamics()
         return np.dot(A, x) + B.flatten()*u
 
@@ -121,7 +115,7 @@ class Controller(VectorSystem):
 
         x = np.array(x)
         x[0] -= np.pi
-        x[:2] = np.unwrap(x[:2])
+        x[:2] = mod_angle(x[:2])
         K, S = self.K, self.S
         u_err = np.dot(-K, x).item()
         if _LINEARIZE_GRAVITY:
@@ -177,7 +171,7 @@ class Controller(VectorSystem):
             ddv0_dtdu = 1
         if ddv1_dtdu == 0:
             ddv1_dtdu = 1
-        q0bar = np.unwrap(q - np.pi)[0] # unwrap only works with arrays, so delay indexing...
+        q0bar = mod_angle(q[0] - np.pi)
 
         K_E = 1
         K_q0 = 0.0005
@@ -235,21 +229,27 @@ class Controller(VectorSystem):
 
         return tau
 
-
     def _GetTorque(self, state):
         g, m1, l1, lc1, m2, l2, lc2 = self.g, self.m1, self.l1, self.lc1, self.m2, self.l2, self.lc2
         # Extract manipulator dynamics.
         q = state[:2]
         v = state[-2:]
 
-        # tau = self.lqr_controller(state)
-        tau = self.swingup_controller(state)
-
+        if True or self.calcV(state) < 10:
+            tau = self.lqr_controller(state)
+        else:
+            tau = self.swingup_controller(state)
 
         tau_limit = 50
         tau = np.clip(tau, -tau_limit, tau_limit)
         # print(tau)
         return tau
+
+    def calcV(self, x):
+        x = np.array(x)
+        x[0] -= np.pi
+        x[:2] = mod_angle(x[:2])
+        return np.dot(x.T, np.dot(self.S, x)).item()
 
     def _DoCalcVectorOutput(self, context, double_pend_state, unused, torque):
         # Extract manipulator dynamics.
