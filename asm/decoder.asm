@@ -6,7 +6,7 @@
 .equ num_gray_bits, 0x03
 .flag gray_msb, acc.2
 .equ gray_bits, (1 << num_gray_bits) - 1
-.equ theta_bits, 0x3f
+.equ theta_bits, 0x7f
 .equ max_skip, 0x03
 .equ stack, 0x2f
 
@@ -239,11 +239,11 @@ update_theta:
 				jb acc.7, negative_counter
 				positive_counter:
 					mov r3, #0x00
-					mov r2, #0x10
+					mov r2, #0x20
 					sjmp done_reset_counter
 				negative_counter:
 					mov r3, #0xff
-					mov r2, #0xff
+					mov r2, #0xef
 				done_reset_counter:
 		mov a, r5
 		lcall sndchr

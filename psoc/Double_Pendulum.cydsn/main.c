@@ -25,12 +25,12 @@ char s_print[1024];
 // model parameters
 float g = 9.8;
 float m = 0.1; // kg
-float l = 7 / 2.54 * 100; // meters
+float l = 7 / 2.54 / 100; // meters
 
 CY_ISR(RX_INT)
 {
     uint8 data = UART_ReadRxData();
-    if(data == 0xff && sbuf_i == 1){
+    if(data == 0xff && sbuf_i == 1 && serial_buffer[0] != 0xff){
         // 0xff is not possible for second byte so we must not be in sync
         serial_buffer[0] = data;
         return;
@@ -56,44 +56,75 @@ CY_ISR(RX_INT)
     }
 }
 
+uint8 rescale(float x, float limit){
+    float x_rescaled = x / limit * 0x80 + 0x80;
+    uint8 value;
+    if(x >= limit) value = 0xff;
+    else if(x < -limit) value = 0x00;
+    else value = x_rescaled;
+    return value;
+}
+
 float E(float q0, float q1){
-    K = 0.5 * m * pow(l*q1, 2);
-    U = -m * g * l * cos(q0);
+    float K = 0.5 * m * pow(l*q1, 2);
+    float U = -m * g * l * cos(q0);
     return K + U;
 }
 
-float lqr(float q0, float q1){
-    float k0 = 8;
-    float k1 = 0.1;
-    float tau = -k0 * q0 + -k1 * q1;
+float lqr(float q0bar, float q1){
+    float k0 = 20;
+    float k1 = 5;
+    float tau = -k0 * q0bar + -k1 * q1;
     return tau;
 }
 
 float swingup(float q0, float q1){
-    float k = 1;
-    if(abs(q0) < 0.2 && abs(q1) < 1){
+    float k = 10;
+    float q0_shift = fmod(q0 + M_PI, 2*M_PI) - M_PI;
+    /*
+    if(fabs(q0_shift) < 0.2 && fabs(q1) < 1){
         if(q1 < 0) q1 = -1;
         else q1 = 1;
     }
+    */
+
     float tau = k * q1 * (E(q0, q1) - E(M_PI, 0));
-    return tau;
+    if(fabs(q1) < 0.5){
+        if(fabs(q0_shift) < 0.3){
+            // keep moving in same direction
+            if(q1 < 0) tau += -5;
+            else tau += 5;
+        } else {
+            // help gravity
+            // if(q0_shift < 0) tau += 5;
+            // else tau += -5;
+        }
+    }    return tau;
 }
 
-bool in_roc(float q0, float q1){
-    return abs(q0) < 0.3;
+int in_roc(float q0bar, float q1){
+    return fabs(q0bar) < 1;
 }
 
 void update(){
     uint8 _theta1 = theta1;
     int8 _dtheta1 = dtheta1;
-    float q0 = _theta1;
-    float q0bar = q0 * 2*M_PI / SEGMENTS - M_PI;
+    float q0 = _theta1 * 2*M_PI / SEGMENTS;
+    float q0bar = q0 - M_PI;
+    float q0_shift = fmod(q0 + M_PI, 2*M_PI) - M_PI;
     float q1;
     if(_dtheta1) q1 = 1 / (_dtheta1 / 225.) * (2*M_PI / SEGMENTS); // 225 = 11.0592e6/12/256/16
-    else q1 = 0;
+    else {
+        // give q1 a sign
+        if(fabs(q0_shift) < 0.2) q1 = 1e-2;
+        else{
+            if(q0_shift < 0) q1 = 1e-2;
+            else q1 = -1e-2;
+        }
+    }
 
     float tau;
-    if(in_roc(q0, q1)){
+    if(in_roc(q0bar, q1)){
         tau = lqr(q0bar, q1);
     } else {
         tau = swingup(q0, q1);
@@ -107,9 +138,14 @@ void update(){
     else count = 255 * duty;
 
     PWM_WriteCompare(count);
+    DAC_u_SetValue(count);
+    DAC_Debug_SetValue(rescale(E(q0, q1) - E(M_PI, 0), 3));
+
+    DAC_Theta1_SetValue((2*_theta1) ^ 0x80);
+    DAC_Dtheta1_SetValue(rescale(_dtheta1, 20));
 
     LCD_ClearDisplay();
-    sprintf(s_print, "%d t1=%d dt1=%d", count, _theta1, _dtheta1);
+    sprintf(s_print, "%d t=%d dt=%d", count, _theta1, _dtheta1);
     LCD_PrintString(s_print);
     LCD_Position(1, 0);
     sprintf(s_print, "q0=%.2f q1=%.2f", q0, q1);
@@ -127,6 +163,11 @@ int main()
     LCD_Start();                        // initialize lcd
     LCD_ClearDisplay();
     PWM_Start();
+    
+    DAC_Theta1_Start();
+    DAC_Dtheta1_Start();
+    DAC_u_Start();
+    DAC_Debug_Start();
     
     CyGlobalIntEnable;
     rx_int_StartEx(RX_INT);             // start RX interrupt (look for CY_ISR with RX_INT address)

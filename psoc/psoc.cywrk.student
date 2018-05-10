@@ -62,10 +62,38 @@
 <v>psoc\Double_Pendulum\Generated_Source\PSoC5\cy_boot\CySpc.h</v>
 <v>psoc\Double_Pendulum\Generated_Source\PSoC5\cy_boot\cytypes.h</v>
 <v>psoc\Double_Pendulum\Generated_Source\PSoC5\cy_boot\cyutils.c</v>
+<v>psoc\Double_Pendulum\Generated_Source\PSoC5\DAC_Debug</v>
+<v>psoc\Double_Pendulum\Generated_Source\PSoC5\DAC_Debug\DAC_Debug.c</v>
+<v>psoc\Double_Pendulum\Generated_Source\PSoC5\DAC_Debug\DAC_Debug.h</v>
+<v>psoc\Double_Pendulum\Generated_Source\PSoC5\DAC_Debug\DAC_Debug_PM.c</v>
+<v>psoc\Double_Pendulum\Generated_Source\PSoC5\DAC_Dtheta1</v>
+<v>psoc\Double_Pendulum\Generated_Source\PSoC5\DAC_Dtheta1\DAC_Dtheta1.c</v>
+<v>psoc\Double_Pendulum\Generated_Source\PSoC5\DAC_Dtheta1\DAC_Dtheta1.h</v>
+<v>psoc\Double_Pendulum\Generated_Source\PSoC5\DAC_Dtheta1\DAC_Dtheta1_PM.c</v>
+<v>psoc\Double_Pendulum\Generated_Source\PSoC5\DAC_Theta1</v>
+<v>psoc\Double_Pendulum\Generated_Source\PSoC5\DAC_Theta1\DAC_Theta1.c</v>
+<v>psoc\Double_Pendulum\Generated_Source\PSoC5\DAC_Theta1\DAC_Theta1.h</v>
+<v>psoc\Double_Pendulum\Generated_Source\PSoC5\DAC_Theta1\DAC_Theta1_PM.c</v>
+<v>psoc\Double_Pendulum\Generated_Source\PSoC5\DAC_u</v>
+<v>psoc\Double_Pendulum\Generated_Source\PSoC5\DAC_u\DAC_u.c</v>
+<v>psoc\Double_Pendulum\Generated_Source\PSoC5\DAC_u\DAC_u.h</v>
+<v>psoc\Double_Pendulum\Generated_Source\PSoC5\DAC_u\DAC_u_PM.c</v>
 <v>psoc\Double_Pendulum\Generated_Source\PSoC5\Debug</v>
 <v>psoc\Double_Pendulum\Generated_Source\PSoC5\Debug\Debug.c</v>
 <v>psoc\Double_Pendulum\Generated_Source\PSoC5\Debug\Debug.h</v>
 <v>psoc\Double_Pendulum\Generated_Source\PSoC5\Debug\Debug_aliases.h</v>
+<v>psoc\Double_Pendulum\Generated_Source\PSoC5\Debug_Analog</v>
+<v>psoc\Double_Pendulum\Generated_Source\PSoC5\Debug_Analog\Debug_Analog.c</v>
+<v>psoc\Double_Pendulum\Generated_Source\PSoC5\Debug_Analog\Debug_Analog.h</v>
+<v>psoc\Double_Pendulum\Generated_Source\PSoC5\Debug_Analog\Debug_Analog_aliases.h</v>
+<v>psoc\Double_Pendulum\Generated_Source\PSoC5\Debug_LED</v>
+<v>psoc\Double_Pendulum\Generated_Source\PSoC5\Debug_LED\Debug_LED.c</v>
+<v>psoc\Double_Pendulum\Generated_Source\PSoC5\Debug_LED\Debug_LED.h</v>
+<v>psoc\Double_Pendulum\Generated_Source\PSoC5\Debug_LED\Debug_LED_aliases.h</v>
+<v>psoc\Double_Pendulum\Generated_Source\PSoC5\Dtheta1</v>
+<v>psoc\Double_Pendulum\Generated_Source\PSoC5\Dtheta1\Dtheta1.c</v>
+<v>psoc\Double_Pendulum\Generated_Source\PSoC5\Dtheta1\Dtheta1.h</v>
+<v>psoc\Double_Pendulum\Generated_Source\PSoC5\Dtheta1\Dtheta1_aliases.h</v>
 <v>psoc\Double_Pendulum\Generated_Source\PSoC5\LCD</v>
 <v>psoc\Double_Pendulum\Generated_Source\PSoC5\LCD\LCD.c</v>
 <v>psoc\Double_Pendulum\Generated_Source\PSoC5\LCD\LCD.h</v>
@@ -85,6 +113,10 @@
 <v>psoc\Double_Pendulum\Generated_Source\PSoC5\rx_int</v>
 <v>psoc\Double_Pendulum\Generated_Source\PSoC5\rx_int\rx_int.c</v>
 <v>psoc\Double_Pendulum\Generated_Source\PSoC5\rx_int\rx_int.h</v>
+<v>psoc\Double_Pendulum\Generated_Source\PSoC5\Theta1</v>
+<v>psoc\Double_Pendulum\Generated_Source\PSoC5\Theta1\Theta1.c</v>
+<v>psoc\Double_Pendulum\Generated_Source\PSoC5\Theta1\Theta1.h</v>
+<v>psoc\Double_Pendulum\Generated_Source\PSoC5\Theta1\Theta1_aliases.h</v>
 <v>psoc\Double_Pendulum\Generated_Source\PSoC5\TX</v>
 <v>psoc\Double_Pendulum\Generated_Source\PSoC5\TX\TX.c</v>
 <v>psoc\Double_Pendulum\Generated_Source\PSoC5\TX\TX.h</v>
@@ -92,6 +124,10 @@
 <v>psoc\Double_Pendulum\Generated_Source\PSoC5\tx_int</v>
 <v>psoc\Double_Pendulum\Generated_Source\PSoC5\tx_int\tx_int.c</v>
 <v>psoc\Double_Pendulum\Generated_Source\PSoC5\tx_int\tx_int.h</v>
+<v>psoc\Double_Pendulum\Generated_Source\PSoC5\u</v>
+<v>psoc\Double_Pendulum\Generated_Source\PSoC5\u\u.c</v>
+<v>psoc\Double_Pendulum\Generated_Source\PSoC5\u\u.h</v>
+<v>psoc\Double_Pendulum\Generated_Source\PSoC5\u\u_aliases.h</v>
 <v>psoc\Double_Pendulum\Generated_Source\PSoC5\UART</v>
 <v>psoc\Double_Pendulum\Generated_Source\PSoC5\UART\UART.c</v>
 <v>psoc\Double_Pendulum\Generated_Source\PSoC5\UART\UART.h</v>
@@ -199,7 +235,18 @@
 <v>psoc\Double_Pendulum\CortexM3\ARM_GCC_493\Debug\Listing Files\cyPm.lst</v>
 <v>psoc\Double_Pendulum\CortexM3\ARM_GCC_493\Debug\Listing Files\CySpc.lst</v>
 <v>psoc\Double_Pendulum\CortexM3\ARM_GCC_493\Debug\Listing Files\cyutils.lst</v>
+<v>psoc\Double_Pendulum\CortexM3\ARM_GCC_493\Debug\Listing Files\DAC_Debug.lst</v>
+<v>psoc\Double_Pendulum\CortexM3\ARM_GCC_493\Debug\Listing Files\DAC_Debug_PM.lst</v>
+<v>psoc\Double_Pendulum\CortexM3\ARM_GCC_493\Debug\Listing Files\DAC_Dtheta1.lst</v>
+<v>psoc\Double_Pendulum\CortexM3\ARM_GCC_493\Debug\Listing Files\DAC_Dtheta1_PM.lst</v>
+<v>psoc\Double_Pendulum\CortexM3\ARM_GCC_493\Debug\Listing Files\DAC_Theta1.lst</v>
+<v>psoc\Double_Pendulum\CortexM3\ARM_GCC_493\Debug\Listing Files\DAC_Theta1_PM.lst</v>
+<v>psoc\Double_Pendulum\CortexM3\ARM_GCC_493\Debug\Listing Files\DAC_u.lst</v>
+<v>psoc\Double_Pendulum\CortexM3\ARM_GCC_493\Debug\Listing Files\DAC_u_PM.lst</v>
 <v>psoc\Double_Pendulum\CortexM3\ARM_GCC_493\Debug\Listing Files\Debug.lst</v>
+<v>psoc\Double_Pendulum\CortexM3\ARM_GCC_493\Debug\Listing Files\Debug_Analog.lst</v>
+<v>psoc\Double_Pendulum\CortexM3\ARM_GCC_493\Debug\Listing Files\Debug_LED.lst</v>
+<v>psoc\Double_Pendulum\CortexM3\ARM_GCC_493\Debug\Listing Files\Dtheta1.lst</v>
 <v>psoc\Double_Pendulum\CortexM3\ARM_GCC_493\Debug\Listing Files\LCD.lst</v>
 <v>psoc\Double_Pendulum\CortexM3\ARM_GCC_493\Debug\Listing Files\LCD_LCDPort.lst</v>
 <v>psoc\Double_Pendulum\CortexM3\ARM_GCC_493\Debug\Listing Files\LCD_PM.lst</v>
@@ -208,8 +255,10 @@
 <v>psoc\Double_Pendulum\CortexM3\ARM_GCC_493\Debug\Listing Files\PWM.lst</v>
 <v>psoc\Double_Pendulum\CortexM3\ARM_GCC_493\Debug\Listing Files\PWM_PM.lst</v>
 <v>psoc\Double_Pendulum\CortexM3\ARM_GCC_493\Debug\Listing Files\rx_int.lst</v>
+<v>psoc\Double_Pendulum\CortexM3\ARM_GCC_493\Debug\Listing Files\Theta1.lst</v>
 <v>psoc\Double_Pendulum\CortexM3\ARM_GCC_493\Debug\Listing Files\TX.lst</v>
 <v>psoc\Double_Pendulum\CortexM3\ARM_GCC_493\Debug\Listing Files\tx_int.lst</v>
+<v>psoc\Double_Pendulum\CortexM3\ARM_GCC_493\Debug\Listing Files\u.lst</v>
 <v>psoc\Double_Pendulum\CortexM3\ARM_GCC_493\Debug\Listing Files\UART.lst</v>
 <v>psoc\Double_Pendulum\CortexM3\ARM_GCC_493\Debug\Listing Files\UART_BOOT.lst</v>
 <v>psoc\Double_Pendulum\CortexM3\ARM_GCC_493\Debug\Listing Files\UART_INT.lst</v>
@@ -248,6 +297,8 @@
 <v>psoc\Double_Pendulum\cy_pins_v2_20\cy_pins_v2_20.pdf</v>
 <v>psoc\Double_Pendulum\PWM_v3_30.pdf</v>
 <v>psoc\Double_Pendulum\UART_v2_50.pdf</v>
+<v>psoc\Double_Pendulum\VDAC8_v1_90</v>
+<v>psoc\Double_Pendulum\VDAC8_v1_90\VDAC8_v1_90.pdf</v>
 <v>psoc\Double_Pendulum\ZeroTerminal.pdf</v>
 </ExpandedNodeIds>
 <VisibleNodeIds>
@@ -265,6 +316,8 @@
 <v>psoc\Double_Pendulum\cy_pins_v2_20\cy_pins_v2_20.pdf</v>
 <v>psoc\Double_Pendulum\PWM_v3_30.pdf</v>
 <v>psoc\Double_Pendulum\UART_v2_50.pdf</v>
+<v>psoc\Double_Pendulum\VDAC8_v1_90</v>
+<v>psoc\Double_Pendulum\VDAC8_v1_90\VDAC8_v1_90.pdf</v>
 <v>psoc\Double_Pendulum\ZeroTerminal.pdf</v>
 </VisibleNodeIds>
 </CyGuid_2a325b3b-c96a-4e9f-b7a0-2c44ecb5f237>
@@ -280,6 +333,15 @@
 <name v=".\Double_Pendulum.cydsn\main.c" />
 <name v=".\Double_Pendulum.cydsn\cyapicallbacks.h" />
 <name v=".\Double_Pendulum.cydsn\Generated_Source\PSoC5\LCD.h" />
+<name v=".\Double_Pendulum.cydsn\Generated_Source\PSoC5\PWM.c" />
+<name v=".\Double_Pendulum.cydsn\Generated_Source\PSoC5\Clock.h" />
+<name v=".\Double_Pendulum.cydsn\Generated_Source\PSoC5\Button.c" />
+<name v=".\Double_Pendulum.cydsn\Generated_Source\PSoC5\Button_aliases.h" />
+<name v=".\Double_Pendulum.cydsn\Generated_Source\PSoC5\Button.h" />
+<name v=".\Double_Pendulum.cydsn\Generated_Source\PSoC5\Button_Int.c" />
+<name v=".\Double_Pendulum.cydsn\Generated_Source\PSoC5\rx_int.h" />
+<name v=".\Double_Pendulum.cydsn\Generated_Source\PSoC5\rx_int.c" />
+<name v=".\Double_Pendulum.cydsn\Generated_Source\PSoC5\Button_Int.h" />
 </OpenDocs>
 <config v="" />
 <AutoUpdate v="true" />
