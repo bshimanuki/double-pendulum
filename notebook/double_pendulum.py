@@ -14,7 +14,7 @@ from pydrake.all import (DiagramBuilder, FloatingBaseType,
 from underactuated import (FindResource, ManipulatorDynamics,
                            PlanarRigidBodyVisualizer)
 
-_LINEARIZE_GRAVITY = False
+_LINEARIZE_GRAVITY = True
 
 def mod_angle(x):
     return np.mod(x + np.pi, 2*np.pi) - np.pi
@@ -46,10 +46,9 @@ class Controller(VectorSystem):
         # Use the manipulator equation to get qdd.
         q = x[0:2]
         qd = x[2:4]
-        u = np.array([u, 0])
-        (M, C, tauG, B) = ManipulatorDynamics(self.tree, q, qd)
+        (M, Cv, tauG, B) = ManipulatorDynamics(self.tree, q, qd)
 
-        qdd = np.linalg.lstsq(M, tauG + np.dot(B, u) - np.dot(C, qd))[0]
+        qdd = np.linalg.lstsq(M, tauG + B[:,0] * u - Cv)[0]
         return np.hstack([qd, qdd])
 
     def evaluate_linearized_f(self, x, u):
@@ -119,11 +118,14 @@ class Controller(VectorSystem):
         K, S = self.K, self.S
         u_err = np.dot(-K, x).item()
         if _LINEARIZE_GRAVITY:
-            u = u_err
+            a_sys = np.linalg.lstsq(M, -Cv)[0]
+            u_sys = -a_sys[0] / np.linalg.lstsq(M, B[:,0])[0][0]
+            u = u_err + u_sys
         else:
-            # tau_sys = np.linalg.lstsq(M, -Cv + tauG)[0]
-            tau_sys = -Cv + tauG
-            u = u_err - tau_sys[0]
+            a_sys = np.linalg.lstsq(M, -Cv + tauG)[0]
+            u_sys = -a_sys[0] / np.linalg.lstsq(M, B[:,0])[0][0]
+            # print(x, u_err, u_sys, tauG)
+            u = u_err + u_sys
         return u
 
     def E(self, state):
@@ -142,7 +144,7 @@ class Controller(VectorSystem):
         q = state[:2]
         v = state[-2:]
         (M, Cv, tauG, B) = ManipulatorDynamics(self.tree, q, v)
-        ddv_dtdu = np.linalg.lstsq(M, B)[0][:,0]
+        ddv_dtdu = np.linalg.lstsq(M, B[:,0])[0]
         ddE_dtdu = 1./2 * (np.dot(ddv_dtdu.T, np.dot(M, v)) + np.dot(v.T, B))
         return ddE_dtdu
 
@@ -166,7 +168,7 @@ class Controller(VectorSystem):
         # E2 = self.E(state2)
         # E2_curl = E - E2
 
-        ddv0_dtdu, ddv1_dtdu = np.linalg.lstsq(M, B)[0][:,0]
+        ddv0_dtdu, ddv1_dtdu = np.linalg.lstsq(M, B[:,0])[0]
         if ddv0_dtdu == 0:
             ddv0_dtdu = 1
         if ddv1_dtdu == 0:
@@ -178,11 +180,54 @@ class Controller(VectorSystem):
         K_v0 = 0#0.0001
         K_v1 = 0.1
 
-        tau = -K_E * E_curl / ddE_dtdu - (K_q0 * np.sin(q0bar)*np.exp(-q0bar**2) + K_v0 * v[0]) / ddv0_dtdu - K_v1 * v[1] / ddv1_dtdu
+        tau = -K_E * E_curl * np.sign(ddE_dtdu) - (K_q0 * np.sin(q0bar)*np.exp(-q0bar**2) + K_v0 * v[0]) * np.sign(ddv0_dtdu) - K_v1 * v[1] * np.sign(ddv1_dtdu)
 
         max_tau = 10
         tau = np.clip(tau, -max_tau, max_tau)
         return tau
+
+    def _GetTorque(self, state):
+        g, m1, l1, lc1, m2, l2, lc2 = self.g, self.m1, self.l1, self.lc1, self.m2, self.l2, self.lc2
+        # Extract manipulator dynamics.
+        q = state[:2]
+        v = state[-2:]
+
+        if True or self.calcV(state) < 10:
+            tau = self.lqr_controller(state)
+        else:
+            tau = self.swingup_controller(state)
+
+        tau_limit = 50
+        tau = np.clip(tau, -tau_limit, tau_limit)
+        # print(tau)
+        return tau
+
+    def calcV(self, x):
+        x = np.array(x)
+        x[0] -= np.pi
+        x[:2] = mod_angle(x[:2])
+        return np.dot(x.T, np.dot(self.S, x)).item()
+
+    def _DoCalcVectorOutput(self, context, double_pend_state, unused, torque):
+        # Extract manipulator dynamics.
+        # q = state[:2]
+        # v = state[-2:]
+
+        # Control gains for stabilizing the second joint.
+        # kp = 1
+        # kd = .1
+
+        # Desired pendulum parameters.
+        # length = 2.
+        # b = .1
+
+        # Cancel double pend dynamics and inject single pend dynamics.
+        # torque[:] = Cv - tauG + \
+            # M.dot([-self.g / length * math.sin(q[0]) - b * v[0],
+                   # -kp * q[1] + kd * v[1]])
+
+        torque[0] = self._GetTorque(double_pend_state)
+        torque[1] = 0
 
     def xin_controller(self, state):
         '''
@@ -228,49 +273,6 @@ class Controller(VectorSystem):
         du = -tauG * v
 
         return tau
-
-    def _GetTorque(self, state):
-        g, m1, l1, lc1, m2, l2, lc2 = self.g, self.m1, self.l1, self.lc1, self.m2, self.l2, self.lc2
-        # Extract manipulator dynamics.
-        q = state[:2]
-        v = state[-2:]
-
-        if True or self.calcV(state) < 10:
-            tau = self.lqr_controller(state)
-        else:
-            tau = self.swingup_controller(state)
-
-        tau_limit = 50
-        tau = np.clip(tau, -tau_limit, tau_limit)
-        # print(tau)
-        return tau
-
-    def calcV(self, x):
-        x = np.array(x)
-        x[0] -= np.pi
-        x[:2] = mod_angle(x[:2])
-        return np.dot(x.T, np.dot(self.S, x)).item()
-
-    def _DoCalcVectorOutput(self, context, double_pend_state, unused, torque):
-        # Extract manipulator dynamics.
-        # q = state[:2]
-        # v = state[-2:]
-
-        # Control gains for stabilizing the second joint.
-        # kp = 1
-        # kd = .1
-
-        # Desired pendulum parameters.
-        # length = 2.
-        # b = .1
-
-        # Cancel double pend dynamics and inject single pend dynamics.
-        # torque[:] = Cv - tauG + \
-            # M.dot([-self.g / length * math.sin(q[0]) - b * v[0],
-                   # -kp * q[1] + kd * v[1]])
-
-        torque[0] = self._GetTorque(double_pend_state)
-        torque[1] = 0
 
 def make_controller(gravity=9.8):
     tree = RigidBodyTree(FindResource("double_pendulum/double_pendulum.urdf"),

@@ -9,7 +9,6 @@
 .equ theta_bits, 0x3f
 .equ max_skip, 0x03
 .equ stack, 0x2f
-.equ initial_update, 0x00 ; bit to detect inital code, starts low and set on first run
 
 .equ s_theta1, 0x7000
 .equ s_theta2, 0x7100
@@ -71,9 +70,13 @@ init:
 	mov a, #0x00 ; TODO: change to port for theta2
 	lcall init_rotary
 	clr rs0
-	clr initial_update
 
 	setb tr0 ; start timer
+
+	; tell PSoC to restart
+	mov a, #0xff
+	lcall sndchr
+	lcall sndchr
 	ret
 
 ; initialize variables for the rotary encoder specified by the register bank
@@ -147,8 +150,6 @@ update_theta:
 		mov r3, a
 	done_dangle_counter:
 
-	jnb initial_update, dangle_within_limits ; make sure to send update on first run
-
 	mov a, r7
 	clr c
 	subb a, r6
@@ -168,9 +169,6 @@ update_theta:
 	sjmp done_angle
 
 	dangle_within_limits:
-		setb initial_update
-		lcall send_rotary
-
 		; difference is in range, switch to new angle
 		mov a, r7
 		clr c
@@ -189,7 +187,15 @@ update_theta:
 		mov r4, a ; store
 		mov r6, 7 ; move new decoded gray code to old
 
-		lcall sndchr ; send theta to PSoC
+		jb rs0, angle1
+		angle0:
+			mov a, #0x00
+			sjmp angle_done ; send which rotary to PSoC
+		angle1:
+			mov a, #0x80
+		angle_done:
+			orl a, r4
+			lcall sndchr ; send rotary number and theta to PSoC
 
 		; compute dtheta
 		mov a, r3
@@ -243,17 +249,6 @@ update_theta:
 		lcall sndchr
 
 	done_angle:
-	ret
-
-send_rotary:
-	jb rs0, angle1
-	angle0:
-		mov a, #0x00
-		sjmp send_rotary_chr ; send which rotary to PSoC
-	angle1:
-		mov a, #0x01
-	send_rotary_chr:
-		lcall sndchr
 	ret
 
 lcd:
