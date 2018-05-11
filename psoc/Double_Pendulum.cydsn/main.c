@@ -20,12 +20,17 @@ int sbuf_i = 0;
 uint8 new_data = 0;
 uint8 theta1 = 0, theta2 = 0;
 int8 dtheta1 = 0, dtheta2 = 0;
+float q1_buf[3]; // median filter
+int q1_buf_i = 0;
 char s_print[1024];
 
 // model parameters
 float g = 9.8;
 float m = 0.1; // kg
-float l = 7 / 2.54 / 100; // meters
+float l = 5 * 2.54 / 100; // meters
+
+float min(float a, float b){return a < b ? a : b;}
+float max(float a, float b){return a > b ? a : b;}
 
 CY_ISR(RX_INT)
 {
@@ -73,20 +78,23 @@ float E(float q0, float q1){
 
 float lqr(float q0bar, float q1){
     float k0 = 20;
-    float k1 = 5;
+    float k1 = 2;
     float tau = -k0 * q0bar + -k1 * q1;
     return tau;
 }
 
 float swingup(float q0, float q1){
     float k = 100;
+    float k_e = 1.4;
+    /*
     float q0_shift = fmod(q0 + M_PI, 2*M_PI) - M_PI;
-    if(fabs(q0_shift) < 0.2 && fabs(q1) < 1){
-        if(q1 < 0) q1 = -1;
-        else q1 = 1;
+    if(fabs(q0_shift) < 0.2 && fabs(q1) < 0.3){
+        if(q1 < 0) q1 = -10;
+        else q1 = 10;
     }
+    */
 
-    float tau = k * q1 * (E(q0, q1) - E(M_PI, 0));
+    float tau = -k * (q1 < 0 ? -1 : 1) * (E(q0, q1) - k_e*E(M_PI, 0));
     // if(fabs(q1) < 0.5){
         // if(fabs(q0_shift) < 0.3){
             // // keep moving in same direction
@@ -102,7 +110,7 @@ float swingup(float q0, float q1){
 }
 
 int in_roc(float q0bar, float q1){
-    return fabs(q0bar) < 1;
+    return fabs(q0bar) < 0.5;
 }
 
 void update(){
@@ -112,7 +120,7 @@ void update(){
     float q0bar = q0 - M_PI;
     float q0_shift = fmod(q0 + M_PI, 2*M_PI) - M_PI;
     float q1;
-    if(_dtheta1) q1 = 1 / (_dtheta1 / 225.) * (2*M_PI / SEGMENTS); // 225 = 11.0592e6/12/256/16
+    if(_dtheta1) q1 = 1 / (_dtheta1 / (11.0592e6 / 12. / 256. / 2.)) * (2*M_PI / SEGMENTS); // 256 counts per R31JP interrupt, 2 interrupts per bit
     else {
         // give q1 a sign
         if(fabs(q0_shift) < 0.2) q1 = 1e-2;
@@ -121,6 +129,9 @@ void update(){
             else q1 = -1e-2;
         }
     }
+    q1_buf[q1_buf_i++] = q1;
+    if(q1_buf_i == 3) q1_buf_i = 0;
+    q1 = q1_buf[0] + q1_buf[1] + q1_buf[2] - min(q1_buf[0], min(q1_buf[1], q1_buf[2])) - max(q1_buf[0], max(q1_buf[1], q1_buf[2]));
 
     float tau;
     if(in_roc(q0bar, q1)){
@@ -138,13 +149,14 @@ void update(){
 
     PWM_WriteCompare(count);
     DAC_u_SetValue(count);
-    DAC_Debug_SetValue(rescale(E(q0, q1) - E(M_PI, 0), 3));
+    DAC_Debug_SetValue(rescale(E(q0, q1) - E(M_PI, 0), E(M_PI, 0)));
 
     DAC_Theta1_SetValue((2*_theta1) ^ 0x80);
-    DAC_Dtheta1_SetValue(rescale(_dtheta1, 20));
+    DAC_Dtheta1_SetValue(rescale(q1, 10));
 
     LCD_ClearDisplay();
     sprintf(s_print, "%d t=%d dt=%d", count, _theta1, _dtheta1);
+    sprintf(s_print, "%d E=%.2f", count, E(q0, q1) - E(M_PI, 0));
     LCD_PrintString(s_print);
     LCD_Position(1, 0);
     sprintf(s_print, "q0=%.2f q1=%.2f", q0, q1);

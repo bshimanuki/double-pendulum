@@ -342,6 +342,7 @@
 <name v=".\Double_Pendulum.cydsn\Generated_Source\PSoC5\rx_int.h" />
 <name v=".\Double_Pendulum.cydsn\Generated_Source\PSoC5\rx_int.c" />
 <name v=".\Double_Pendulum.cydsn\Generated_Source\PSoC5\Button_Int.h" />
+<name v=".\Double_Pendulum.cydsn\Generated_Source\PSoC5\DAC_Dtheta1.h" />
 </OpenDocs>
 <config v="" />
 <AutoUpdate v="true" />

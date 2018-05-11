@@ -50,7 +50,7 @@ init:
 	mov tmod, #22h
 	mov th0, #0x00
 	mov th1, #0xfd ; set 9600 baud
-	mov scon, #0x50 ; set serial for 8 bit data
+	mov scon, #0x52 ; set serial for 8 bit data, ready to send initially
 	setb it0 ; set tcon.0 for edge triggered interrupts
 	setb tr1 ; start timer 1 for serial communication
 	mov ie, #82h
@@ -92,7 +92,6 @@ init_rotary:
 	ret
 
 t0isr:
-	setb p1.0
 	push dph
 	push dpl
 	push acc
@@ -100,7 +99,8 @@ t0isr:
 	; read input pins
 	mov dptr, #portb
 	movx a, @dptr
-	; mov p1, a
+	mov p1, a
+	setb p1.7
 	lcall update_theta
 	setb rs0
 	mov a, #0x00 ; TODO: update for theta_2
@@ -115,7 +115,7 @@ t0isr:
 	pop acc
 	pop dpl
 	pop dph
-	clr p1.0
+	clr p1.7
 
 	reti
 
@@ -207,12 +207,12 @@ update_theta:
 			jz positive_counter
 			sjmp negative_counter
 		dangle_same_direction:
-			; calculate 1/dtheta as sign bit, lower 3 bits of r3, upper 4 bits of r2
+			; calculate 1/dtheta as sign bit, upper 7 bits of r2
 			mov a, r3
-			anl a, #0xf8
+			anl a, #0xff
 			jz positive_dangle
 			jnb acc.7, positive_dangle_max
-			xrl a, #0xf8
+			xrl a, #0xff
 			jz negative_dangle
 			negative_dangle_max:
 				mov r5, #0x80
@@ -223,15 +223,9 @@ update_theta:
 			negative_dangle:
 			positive_dangle:
 			mov a, r3
-			anl a, #0x87 ; sign bit and 3 lower bits
-			mov b, #0x11
-			mul ab ; copy acc.0-acc.2 to acc.4-acc.6
-			anl a, #0xf0
-			mov b, a
+			rlc a ; put sign bit into c
 			mov a, r2
-			anl a, #0xf0
-			swap a
-			orl a, b
+			rrc a ; shift and put sign bit into acc.7
 			mov r5, a
 
 			done_dangle:
@@ -239,11 +233,11 @@ update_theta:
 				jb acc.7, negative_counter
 				positive_counter:
 					mov r3, #0x00
-					mov r2, #0x20
+					mov r2, #0x01
 					sjmp done_reset_counter
 				negative_counter:
 					mov r3, #0xff
-					mov r2, #0xef
+					mov r2, #0xfe
 				done_reset_counter:
 		mov a, r5
 		lcall sndchr
@@ -300,10 +294,10 @@ gray2bin:
 
 ; send character over serial port
 sndchr:
-	clr scon.1
-	mov sbuf, a
 	txloop:
 		jnb scon.1, txloop ; wait until previous character has been sent
+	clr scon.1
+	mov sbuf, a
 	ret
 
 init_lcd:
