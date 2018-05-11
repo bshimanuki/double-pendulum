@@ -7,6 +7,10 @@
 \newcommand\rotaryarc{asin((\height)/(\radius))}
 \newcommand\rotaryarcend{asin((\height)/(\radiusend))}
 
+\newcommand\shaftradius{0.243in/2}
+\newcommand\shaftd{0.223in-\shaftradius}
+\newcommand\shaftarc{acos((\shaftd)/(\shaftradius))}
+
 \begin{document}
 \begin{tikzpicture}
 	\node (origin) at (0,0) {};
@@ -14,7 +18,9 @@
 
 	% outside
 	\draw (origin) ++({\rotaryarc}:\radius) arc ({\rotaryarc}:{360-\rotaryarc}:\radius)
-	-- ($(end)+({-180+\rotaryarcend}:\radiusend)$) arc ({-180+\rotaryarcend}:{180-\rotaryarcend}:\radiusend) -- cycle;
+	-- ($(end)+({-180+\rotaryarcend}:\radiusend)$)
+	arc ({-180+\rotaryarcend}:{180-\rotaryarcend}:\radiusend)
+	-- cycle;
 
 
 	% rotary rings
@@ -22,10 +28,17 @@
 	\drawring{1.5in}{1.9in}{360/128}{32}
 
 	% center holes
-	\draw (origin) circle (6mm/2);
-	\foreach \theta in {45,135,...,315} {
-		\draw (origin)++(\theta:0.77in/2) circle (\sixthirtytworadius);
-	}
+	% amazon motor
+	% \draw (origin) circle (6mm/2);
+	% \foreach \theta in {45,135,...,315} {
+		% \draw (origin)++(\theta:0.77in/2) circle (\sixthirtytworadius);
+	% }
+
+	% lab motor
+	\draw ({\shaftarc}:\shaftradius) arc ({\shaftarc}:{270-\shaftarc}:\shaftradius)
+	-- ({270+\shaftarc}:\shaftradius)
+	arc ({270+\shaftarc}:{360-\shaftarc}:\shaftradius)
+	-- cycle;
 
 	% end holes
 	% \draw (end) circle (11in/16/2);
