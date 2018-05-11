@@ -79,27 +79,26 @@ float lqr(float q0bar, float q1){
 }
 
 float swingup(float q0, float q1){
-    float k = 10;
+    float k = 100;
     float q0_shift = fmod(q0 + M_PI, 2*M_PI) - M_PI;
-    /*
     if(fabs(q0_shift) < 0.2 && fabs(q1) < 1){
         if(q1 < 0) q1 = -1;
         else q1 = 1;
     }
-    */
 
     float tau = k * q1 * (E(q0, q1) - E(M_PI, 0));
-    if(fabs(q1) < 0.5){
-        if(fabs(q0_shift) < 0.3){
-            // keep moving in same direction
-            if(q1 < 0) tau += -5;
-            else tau += 5;
-        } else {
-            // help gravity
-            // if(q0_shift < 0) tau += 5;
-            // else tau += -5;
-        }
-    }    return tau;
+    // if(fabs(q1) < 0.5){
+        // if(fabs(q0_shift) < 0.3){
+            // // keep moving in same direction
+            // if(q1 < 0) tau += -5;
+            // else tau += 5;
+        // } else {
+            // // help gravity
+            // // if(q0_shift < 0) tau += 5;
+            // // else tau += -5;
+        // }
+    // }
+    return tau;
 }
 
 int in_roc(float q0bar, float q1){
