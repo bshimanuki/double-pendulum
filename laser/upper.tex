@@ -3,7 +3,7 @@
 
 \newcommand\height{1in/2}
 \newcommand\radius{4in/2}
-\newcommand\radiusend{2in/2}
+\newcommand\radiusend{4in/2}
 \newcommand\rotaryarc{asin((\height)/(\radius))}
 \newcommand\rotaryarcend{asin((\height)/(\radiusend))}
 
@@ -14,13 +14,19 @@
 \begin{document}
 \begin{tikzpicture}
 	\node (origin) at (0,0) {};
-	\node (end) at (7in,0) {};
+	\node (end) at (5in,0) {};
 
 	% outside
 	\draw (origin) ++({\rotaryarc}:\radius) arc ({\rotaryarc}:{360-\rotaryarc}:\radius)
 	-- ($(end)+({-180+\rotaryarcend}:\radiusend)$)
 	arc ({-180+\rotaryarcend}:{180-\rotaryarcend}:\radiusend)
 	-- cycle;
+
+	% serial port
+	\newcommand\serialoffset{-0.4in}
+	\draw (\serialoffset, 0.5in) circle (\sixthirtytworadius);
+	\draw (\serialoffset, -0.5in) circle (\sixthirtytworadius);
+	\node[draw,shape=rectangle,minimum width=0.25in,minimum height=0.75in,anchor=center] at (\serialoffset,0) {};
 
 
 	% rotary rings
@@ -41,8 +47,16 @@
 	-- cycle;
 
 	% end holes
-	% \draw (end) circle (11in/16/2);
-	\node[draw,shape=rectangle,minimum width=1.125in,minimum height=1.25in,anchor=center] at (end) {};
+	\draw (end) circle (11in/16/2);
+	\foreach \theta in {45,135,...,315} {
+		\draw (end)++(\theta:1.2in) circle (\sixthirtytworadius);
+	}
+	% \node[draw,shape=rectangle,minimum width=1.125in,minimum height=1.25in,anchor=center] at (end) {};
+
+	% LEDs
+	\drawpair[(end)]{90}{1.2in}
+	\drawpair[(end)]{360/64}{1.2in}
+	\drawpair[(end)]{-90}{1.7in}
 
 \end{tikzpicture}
 \end{document}

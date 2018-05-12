@@ -72,3 +72,9 @@
 		\drawhole[#1]{#2}{#3}{#4+360/#5*\i}{#4+180/#5+360/#5*\i}
 	}
 }
+
+\newcommand\ledspacing{\ledradius+0.5mm}
+\newcommand\drawpair[3][(0,0)]{
+	\draw #1++(#2:#3)++(#2+90:\ledspacing) circle (\ledradius);
+	\draw #1++(#2:#3)++(#2-90:\ledspacing) circle (\ledradius);
+}
