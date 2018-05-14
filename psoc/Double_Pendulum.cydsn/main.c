@@ -13,6 +13,10 @@
 #include <stdio.h>
 #include <math.h>
 
+#define false 0
+#define true 1
+typedef int bool;
+
 #define SEGMENTS 128
 
 uint8 serial_buffer[2];
@@ -20,14 +24,22 @@ int sbuf_i = 0;
 uint8 new_data = 0;
 uint8 theta1 = 0, theta2 = 0;
 int8 dtheta1 = 0, dtheta2 = 0;
-float q1_buf[3]; // median filter
-int q1_buf_i = 0;
+float v0_buf[3]; // median filter
+int v0_buf_i = 0;
 char s_print[1024];
+
+float E_top;
+float q0, q0bar, q1, v0, v1;
 
 // model parameters
 float g = 9.8;
-float m = 0.1; // kg
-float l = 5 * 2.54 / 100; // meters
+float m1 = 0.1; // kg
+float l1 = 5 * 2.54 / 100; // meters
+float lc1 = 5 * 2.54 / 100; // meters
+float m2 = 0.1; // kg
+float l2 = 4 * 2.54 / 100; // meters
+float lc2 = 4 * 2.54 / 100; // meters
+float I1, I2;
 
 float min(float a, float b){return a < b ? a : b;}
 float max(float a, float b){return a > b ? a : b;}
@@ -70,35 +82,58 @@ uint8 rescale(float x, float limit){
     return value;
 }
 
-float E(float q0, float q1){
-    float K = 0.5 * m * pow(l*q1, 2);
-    float U = -m * g * l * cos(q0);
+float E(float _q0, float _q1, float _v0, float _v1){
+    float K = 0.5 * (
+            I1 * pow(_v0, 2)
+            + I2 * pow(_v0 + _v1, 2)
+            + m2 * pow(l1 * _v0, 2)
+            + 2 * m2 * l1 * lc2 * cos(_q1) * _v0 * (_v0 + _v1)
+            );
+    float U = -m1 * g * lc1 * cos(_q0) - m2 * g * (l1 * cos(_q0) + lc2 * cos(_q0 + _q1));
     return K + U;
 }
+float E(){ return E(q0, q1, v0, v1); }
 
-float lqr(float q0bar, float q1){
+float ddE_dtdu(){
+    // ddv_dtdu = np.linalg.lstsq(M, B[:,0])[0]
+    float denominator = I1 * I2 + m2 * pow(l1, 2)  * I2 - pow(m2 * l1 * lc2 * cos(_q1), 2);
+    ddv_dtdu0 = I2 / denominator;
+    ddv_dtdu1 = (-I2 - m2 * l1 * lc2 * cos(_q1)) / denominator;
+    // ddE_dtdu = 1./2 * (np.dot(ddv_dtdu.T, np.dot(M, v)) + np.dot(v.T, B[:,0]))
+    float ddE = 0.5 * (
+            I1 * ddv_dtdu0 * _v0
+            + I2 * (ddv_dtdu0 + ddv_dtdu1) * (_v0 + _v1)
+            + m2 * pow(l1, 2) * ddv_dtdu0 * _v0
+            + m2 * l1 * lc2 * cos(_q1) * (2 * ddv_dtdu0 *_v0 + ddv_dtdu0 * _v1 + ddv_dtdu1 * _v0)
+
+            + _v0
+            )
+    return ddE;
+}
+
+float lqr(){
     float k0 = 20;
     float k1 = 2;
-    float tau = -k0 * q0bar + -k1 * q1;
+    float tau = -k0 * q0bar + -k1 * v0;
     return tau;
 }
 
-float swingup(float q0, float q1){
+float swingup(){
     float k = 100;
     float k_e = 1.4;
     /*
     float q0_shift = fmod(q0 + M_PI, 2*M_PI) - M_PI;
-    if(fabs(q0_shift) < 0.2 && fabs(q1) < 0.3){
-        if(q1 < 0) q1 = -10;
-        else q1 = 10;
+    if(fabs(q0_shift) < 0.2 && fabs(v0) < 0.3){
+        if(v0 < 0) v0 = -10;
+        else v0 = 10;
     }
     */
 
-    float tau = -k * (q1 < 0 ? -1 : 1) * (E(q0, q1) - k_e*E(M_PI, 0));
-    // if(fabs(q1) < 0.5){
+    float tau = -k * (v0 < 0 ? -1 : 1) * (E() - k_e*E_top);
+    // if(fabs(v0) < 0.5){
         // if(fabs(q0_shift) < 0.3){
             // // keep moving in same direction
-            // if(q1 < 0) tau += -5;
+            // if(v0 < 0) tau += -5;
             // else tau += 5;
         // } else {
             // // help gravity
@@ -109,57 +144,50 @@ float swingup(float q0, float q1){
     return tau;
 }
 
-int in_roc(float q0bar, float q1){
+int in_roc(){
     return fabs(q0bar) < 0.5;
 }
 
 void update(){
     uint8 _theta1 = theta1;
     int8 _dtheta1 = dtheta1;
-    float q0 = _theta1 * 2*M_PI / SEGMENTS;
-    float q0bar = q0 - M_PI;
+    q0 = _theta1 * 2*M_PI / SEGMENTS;
+    q0bar = q0 - M_PI;
     float q0_shift = fmod(q0 + M_PI, 2*M_PI) - M_PI;
-    float q1;
-    if(_dtheta1) q1 = 1 / (_dtheta1 / (11.0592e6 / 12. / 256. / 2.)) * (2*M_PI / SEGMENTS); // 256 counts per R31JP interrupt, 2 interrupts per bit
+    if(_dtheta1) v0 = 1 / (_dtheta1 / (11.0592e6 / 12. / 256. / 2.)) * (2*M_PI / SEGMENTS); // 256 counts per R31JP interrupt, 2 interrupts per bit
     else {
-        // give q1 a sign
-        if(fabs(q0_shift) < 0.2) q1 = 1e-2;
+        // give v0 a sign
+        if(fabs(q0_shift) < 0.2) v0 = 1e-2;
         else{
-            if(q0_shift < 0) q1 = 1e-2;
-            else q1 = -1e-2;
+            if(q0_shift < 0) v0 = 1e-2;
+            else v0 = -1e-2;
         }
     }
-    q1_buf[q1_buf_i++] = q1;
-    if(q1_buf_i == 3) q1_buf_i = 0;
-    q1 = q1_buf[0] + q1_buf[1] + q1_buf[2] - min(q1_buf[0], min(q1_buf[1], q1_buf[2])) - max(q1_buf[0], max(q1_buf[1], q1_buf[2]));
+    v0_buf[v0_buf_i++] = v0;
+    if(v0_buf_i == 3) v0_buf_i = 0;
+    v0 = v0_buf[0] + v0_buf[1] + v0_buf[2] - min(v0_buf[0], min(v0_buf[1], v0_buf[2])) - max(v0_buf[0], max(v0_buf[1], v0_buf[2]));
 
     float tau;
-    if(in_roc(q0bar, q1)){
-        tau = lqr(q0bar, q1);
+    if(in_roc()){
+        tau = lqr();
     } else {
-        tau = swingup(q0, q1);
+        tau = swingup();
     }
 
-    float tau_limit = 5;
-    float duty = 1./2 + tau / (2*tau_limit);
-    uint8 count;
-    if(duty >= 1) count = 255;
-    else if(duty <= 0) count = 0;
-    else count = 255 * duty;
-
+    count = rescale(tau, 5);
     PWM_WriteCompare(count);
     DAC_u_SetValue(count);
-    DAC_Debug_SetValue(rescale(E(q0, q1) - E(M_PI, 0), E(M_PI, 0)));
+    DAC_Debug_SetValue(rescale(E() - E_top, E_top));
 
     DAC_Theta1_SetValue((2*_theta1) ^ 0x80);
-    DAC_Dtheta1_SetValue(rescale(q1, 10));
+    DAC_Dtheta1_SetValue(rescale(v0, 10));
 
     LCD_ClearDisplay();
     sprintf(s_print, "%d t=%d dt=%d", count, _theta1, _dtheta1);
-    sprintf(s_print, "%d E=%.2f", count, E(q0, q1) - E(M_PI, 0));
+    sprintf(s_print, "%d E=%.2f", count, E() - E_top);
     LCD_PrintString(s_print);
     LCD_Position(1, 0);
-    sprintf(s_print, "q0=%.2f q1=%.2f", q0, q1);
+    sprintf(s_print, "q0=%.2f v0=%.2f", q0, v0);
     LCD_PrintString(s_print);
 }
 
@@ -189,6 +217,11 @@ int main()
 
     UART_Start();                       // initialize UART
     UART_ClearRxBuffer();
+
+    // initialize computed constants
+    E_top = E(M_PI, 0, 0, 0);
+    I1 = m1 * pow(lc1, 2);
+    I2 = m2 * pow(lc2, 2);
 
     for(;;)
     {

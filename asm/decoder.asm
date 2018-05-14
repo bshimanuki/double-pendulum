@@ -65,9 +65,14 @@ init:
 	; set initial state
 	mov dptr, #portb
 	movx a, @dptr
+	push acc
+	; theta1 bits are in PB.0-PB.2, theta2 bits ae in PB.4-PB.6
+	anl a, #gray_bits
 	lcall init_rotary
 	setb rs0 ; switch to register bank 1
-	mov a, #0x00 ; TODO: change to port for theta2
+	pop acc
+	swap a
+	anl a, #gray_bits
 	lcall init_rotary
 	clr rs0
 
@@ -101,9 +106,13 @@ t0isr:
 	movx a, @dptr
 	mov p1, a
 	setb p1.7
+	push acc
+	anl a, #gray_bits
 	lcall update_theta
 	setb rs0
-	mov a, #0x00 ; TODO: update for theta_2
+	pop acc
+	swap a
+	anl a, #gray_bits
 	lcall update_theta
 	clr rs0
 

@@ -145,7 +145,7 @@ class Controller(VectorSystem):
         v = state[-2:]
         (M, Cv, tauG, B) = ManipulatorDynamics(self.tree, q, v)
         ddv_dtdu = np.linalg.lstsq(M, B[:,0])[0]
-        ddE_dtdu = 1./2 * (np.dot(ddv_dtdu.T, np.dot(M, v)) + np.dot(v.T, B))
+        ddE_dtdu = 1./2 * (np.dot(ddv_dtdu.T, np.dot(M, v)) + np.dot(v.T, B[:,0]))
         return ddE_dtdu
 
     def swingup_controller(self, state):
@@ -159,7 +159,6 @@ class Controller(VectorSystem):
         E_curl = E - E_top
 
         ddE_dtdu = self.ddE_dtdu(state)
-        ddE_dtdu = ddE_dtdu[0]
         if ddE_dtdu == 0:
             ddE_dtdu = 1
 
