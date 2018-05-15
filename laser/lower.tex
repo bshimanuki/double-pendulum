@@ -3,7 +3,7 @@
 
 \newcommand\height{1in/2}
 \newcommand\radius{4in/2}
-\newcommand\radiusend{2in/2}
+\newcommand\radiusend{1in/2}
 \newcommand\rotaryarc{asin((\height)/(\radius))}
 \newcommand\rotaryarcend{asin((\height)/(\radiusend))}
 
@@ -14,7 +14,7 @@
 \begin{document}
 \begin{tikzpicture}
 	\node (origin) at (0,0) {};
-	\node (end) at (4in,0) {};
+	\node (end) at (3.5in,0) {};
 
 	% outside
 	\draw (origin) ++({\rotaryarc}:\radius) arc ({\rotaryarc}:{360-\rotaryarc}:\radius)
@@ -31,7 +31,13 @@
 	\draw (origin) circle (0.25in/2);
 
 	% end holes
-	\node[draw,shape=rectangle,minimum width=1.125in,minimum height=1.25in,anchor=center] at (end) {};
+	% \node[draw,shape=rectangle,minimum width=1.125in,minimum height=1.25in,anchor=center] at (end) {};
+	\foreach \x in {-0.25in, 0} {
+		\foreach \y in {-0.25in, 0, 0.25in} {
+			\draw (end) ++(\x,\y) circle (\sixthirtytworadius);
+		}
+	}
+	\draw (end) ++(0.25in, 0) circle (\sixthirtytworadius);
 
 \end{tikzpicture}
 \end{document}

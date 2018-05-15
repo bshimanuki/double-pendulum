@@ -7,27 +7,20 @@
 \newcommand\rotaryarc{asin((\height)/(\radius))}
 \newcommand\rotaryarcend{asin((\height)/(\radiusend))}
 
-\newcommand\shaftradius{0.243in/2}
-\newcommand\shaftd{0.223in-\shaftradius}
+\newcommand\shaftradius{0.245in/2}
+\newcommand\shaftd{0.225in-\shaftradius}
 \newcommand\shaftarc{acos((\shaftd)/(\shaftradius))}
 
 \begin{document}
 \begin{tikzpicture}
 	\node (origin) at (0,0) {};
-	\node (end) at (5in,0) {};
+	\node (end) at (5.5in,0) {};
 
 	% outside
 	\draw (origin) ++({\rotaryarc}:\radius) arc ({\rotaryarc}:{360-\rotaryarc}:\radius)
 	-- ($(end)+({-180+\rotaryarcend}:\radiusend)$)
 	arc ({-180+\rotaryarcend}:{180-\rotaryarcend}:\radiusend)
 	-- cycle;
-
-	% serial port
-	\newcommand\serialoffset{-0.4in}
-	\draw (\serialoffset, 0.5in) circle (\sixthirtytworadius);
-	\draw (\serialoffset, -0.5in) circle (\sixthirtytworadius);
-	\node[draw,shape=rectangle,minimum width=0.25in,minimum height=0.75in,anchor=center] at (\serialoffset,0) {};
-
 
 	% rotary rings
 	\drawring{1in}{1.4in}{0}{16}
@@ -57,6 +50,17 @@
 	\drawpair[(end)]{90}{1.2in}
 	\drawpair[(end)]{360/64}{1.2in}
 	\drawpair[(end)]{-90}{1.7in}
+
+	% serial holes
+	\foreach \theta in {45,135,...,315} {
+		\draw (origin)++(\theta:0.6in) circle (\sixthirtytworadius);
+	}
+	\draw (origin)++(3in,0) circle (1mm);
+	\foreach \x in {3.2in, 3.4in} {
+		\foreach \y in {-0.25in, 0in, 0.25in} {
+			\draw (origin)++(\x,\y) circle (1mm);
+		}
+	}
 
 \end{tikzpicture}
 \end{document}

@@ -1,0 +1,33 @@
+\documentclass[tikz,border=1pt,convert=pdf2svg]{standalone}
+\usepackage{laser_cut}
+
+\newcommand\motorradius{1.46in/2}
+\newcommand\angleoffset{15}
+
+\newcommand\drawholes[3][(0,0)]{
+	\draw #1++(#2:#3)++(#2+90:\ledspacing+1.25mm) circle (0.5mm);
+	\draw #1++(#2:#3)++(#2+90:\ledspacing-1.25mm) circle (0.5mm);
+	\draw #1++(#2:#3)++(#2-90:\ledspacing+1.25mm) circle (0.5mm);
+	\draw #1++(#2:#3)++(#2-90:\ledspacing-1.25mm) circle (0.5mm);
+}
+
+% lab motor
+\renewcommand\motorradius{1.22in}
+\renewcommand\angleoffset{90}
+
+\begin{document}
+\begin{tikzpicture}
+	\node (origin) at (0,0) {};
+	\draw (origin) circle (4in/2); % size
+
+	\draw (origin) circle (1in/2);
+	\foreach \theta in {45,135,...,315} {
+		\draw (origin)++(\theta:1.2in) circle (\sixthirtytworadius);
+	}
+
+	\drawholes{\angleoffset+90}{1.2in}
+	\drawholes{\angleoffset+360/64}{1.2in}
+	\drawholes{\angleoffset-90}{1.7in}
+\end{tikzpicture}
+\end{document}
+

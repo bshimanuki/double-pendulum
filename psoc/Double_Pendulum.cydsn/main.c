@@ -24,12 +24,12 @@ int sbuf_i = 0;
 uint8 new_data = 0;
 uint8 theta1 = 0, theta2 = 0;
 int8 dtheta1 = 0, dtheta2 = 0;
-float v0_buf[3]; // median filter
-int v0_buf_i = 0;
 char s_print[1024];
 
 float E_top;
 float q0, q0bar, q1, v0, v1;
+float v0_buf[3], v1_buf; // median filter
+int v0_buf_i = 0, v1_buf_i = 0;
 
 // model parameters
 float g = 9.8;
@@ -65,11 +65,34 @@ CY_ISR(RX_INT)
             if(!(serial_buffer[0] & 0x80)){
                 theta1 = serial_buffer[0] & 0x7f;
                 dtheta1 = (int8) serial_buffer[1];
+
+                q0 = theta1 * 2*M_PI / SEGMENTS;
+                q0bar = q0 - M_PI;
+                if(dtheta1) v0 = 1 / (dtheta1 / (11.0592e6 / 12. / 256. / 2.)) * (2*M_PI / SEGMENTS); // 256 counts per R31JP interrupt, 2 interrupts per bit
+                else {
+                    // give v0 a sign
+                    if(v0 < 0) v0 = 1e-2;
+                    else v0 = -1e-2;
+                }
+                v0_buf[v0_buf_i++] = v0;
+                if(v0_buf_i == 3) v0_buf_i = 0;
+                v0 = v0_buf[0] + v0_buf[1] + v0_buf[2] - min(v0_buf[0], min(v0_buf[1], v0_buf[2])) - max(v0_buf[0], max(v0_buf[1], v0_buf[2]));
+
             } else {
                 theta2 = serial_buffer[0] & 0x7f;
                 dtheta2 = (int8) serial_buffer[1];
+
+                q1 = theta2 * 2*M_PI / SEGMENTS;
+                if(dtheta2) v1 = 1 / (dtheta2 / (11.0592e6 / 12. / 256. / 2.)) * (2*M_PI / SEGMENTS); // 256 counts per R31JP interrupt, 2 interrupts per bit
+                else {
+                    // give v0 a sign
+                    if(v1 < 0) v1 = 1e-2;
+                    else v1 = -1e-2;
+                }
+                v1_buf[v1_buf_i++] = v1;
+                if(v1_buf_i == 3) v1_buf_i = 0;
+                v1 = v1_buf[0] + v1_buf[1] + v1_buf[2] - min(v1_buf[0], min(v1_buf[1], v1_buf[2])) - max(v1_buf[0], max(v1_buf[1], v1_buf[2]));
             }
-        }
     }
 }
 
@@ -149,23 +172,6 @@ int in_roc(){
 }
 
 void update(){
-    uint8 _theta1 = theta1;
-    int8 _dtheta1 = dtheta1;
-    q0 = _theta1 * 2*M_PI / SEGMENTS;
-    q0bar = q0 - M_PI;
-    float q0_shift = fmod(q0 + M_PI, 2*M_PI) - M_PI;
-    if(_dtheta1) v0 = 1 / (_dtheta1 / (11.0592e6 / 12. / 256. / 2.)) * (2*M_PI / SEGMENTS); // 256 counts per R31JP interrupt, 2 interrupts per bit
-    else {
-        // give v0 a sign
-        if(fabs(q0_shift) < 0.2) v0 = 1e-2;
-        else{
-            if(q0_shift < 0) v0 = 1e-2;
-            else v0 = -1e-2;
-        }
-    }
-    v0_buf[v0_buf_i++] = v0;
-    if(v0_buf_i == 3) v0_buf_i = 0;
-    v0 = v0_buf[0] + v0_buf[1] + v0_buf[2] - min(v0_buf[0], min(v0_buf[1], v0_buf[2])) - max(v0_buf[0], max(v0_buf[1], v0_buf[2]));
 
     float tau;
     if(in_roc()){
@@ -179,12 +185,12 @@ void update(){
     DAC_u_SetValue(count);
     DAC_Debug_SetValue(rescale(E() - E_top, E_top));
 
-    DAC_Theta1_SetValue((2*_theta1) ^ 0x80);
+    DAC_Theta1_SetValue((2*theta1) ^ 0x80);
     DAC_Dtheta1_SetValue(rescale(v0, 10));
 
     LCD_ClearDisplay();
-    sprintf(s_print, "%d t=%d dt=%d", count, _theta1, _dtheta1);
-    sprintf(s_print, "%x %.2f %.2f", count, E() - E_top, ddE_dtdu());
+    sprintf(s_print, "%d t=%d dt=%d", count, theta1, dtheta1);
+    sprintf(s_print, "%d E=%.2f", count, E() - E_top);
     //LCD_PrintString(s_print);
     //LCD_Position(1, 0);
     sprintf(s_print, "q0=%.2f v0=%.2f", q0, v0);

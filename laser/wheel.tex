@@ -1,0 +1,39 @@
+\documentclass[tikz,border=1pt,convert=pdf2svg]{standalone}
+\usepackage{laser_cut}
+
+\newcommand\height{1in/2}
+\newcommand\radius{4in/2}
+\newcommand\radiusend{4in/2}
+\newcommand\rotaryarc{asin((\height)/(\radius))}
+\newcommand\rotaryarcend{asin((\height)/(\radiusend))}
+
+\newcommand\shaftradius{0.245in/2}
+\newcommand\shaftd{0.225in-\shaftradius}
+\newcommand\shaftarc{acos((\shaftd)/(\shaftradius))}
+
+\begin{document}
+\begin{tikzpicture}
+	\node (origin) at (0,0) {};
+
+	% outside
+	\draw (origin) circle (2in);
+
+	% rotary rings
+	\drawring{1in}{1.4in}{0}{16}
+	\drawring{1.5in}{1.9in}{360/128}{32}
+
+	% lab motor
+	\draw ({\shaftarc}:\shaftradius) arc ({\shaftarc}:{270-\shaftarc}:\shaftradius)
+	-- ({270+\shaftarc}:\shaftradius)
+	arc ({270+\shaftarc}:{360-\shaftarc}:\shaftradius)
+	-- cycle;
+
+	% serial holes
+	\foreach \theta in {45,135,...,315} {
+		\draw (origin)++(\theta:0.6in) circle (\sixthirtytworadius);
+	}
+
+\end{tikzpicture}
+\end{document}
+
+

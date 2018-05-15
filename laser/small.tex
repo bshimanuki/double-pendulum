@@ -6,6 +6,7 @@
 	\node (weight) at (0,0) {};
 	\node (washer) at (0,0) {};
 	\node (cap) at (2in,0) {};
+	\node (serial) at (3.5in, 0) {};
 
 	\draw (weight) circle (1.5in);
 	\foreach \theta in {45,135,...,315} {
@@ -22,6 +23,15 @@
 
 	\draw (cap) circle (\sixthirtytworadius);
 	\draw (cap) circle (0.5in/2);
+
+	% serial port
+	\draw (serial) circle (1in);
+	\foreach \theta in {45,135,...,315} {
+		\draw (serial)++(\theta:0.6in) circle (\sixthirtytworadius);
+	}
+	\draw (serial) ++(0, 11mm+\mthreeradius) circle (\mthreeradius);
+	\draw (serial) ++(0, -11mm-\mthreeradius) circle (\mthreeradius);
+	\node[draw,shape=rectangle,minimum width=0.44in,minimum height=0.76in,anchor=center] at (serial) {};
 
 \end{tikzpicture}
 \end{document}
