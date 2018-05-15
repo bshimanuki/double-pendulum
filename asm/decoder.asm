@@ -35,6 +35,7 @@ ljmp t0isr
 
 .org 100h
 start:
+mov sp, #stack ; reinitialize stack pointer
 lcall init
 loop:
 	mov a, r1
@@ -43,8 +44,6 @@ loop:
 	sjmp loop
 
 init:
-	mov sp, #stack ; reinitialize stack pointer
-
 	; set timer 0 in mode 2 (8 bit autoreload)
 	; set timer 1 in mode 2 (8 bit autoreload)
 	mov tmod, #22h
@@ -77,12 +76,13 @@ init:
 	lcall init_rotary
 	clr rs0
 
-	setb tr0 ; start timer
-
 	; tell PSoC to restart
-	mov a, #0xff
-	;lcall sndchr
-	;lcall sndchr
+	mov a, #0x00
+	lcall sndchr
+	mov a, #0x80
+	lcall sndchr
+
+	setb tr0 ; start timer
 	ret
 
 ; initialize variables for the rotary encoder specified by the register bank
@@ -102,6 +102,7 @@ t0isr:
 	push dpl
 	push acc
 	push b
+
 	; read input pins
 	mov dptr, #portb
 	movx a, @dptr
@@ -133,6 +134,8 @@ t0isr:
 update_theta:
 	lcall gray2bin
 	mov r7, a
+	sjmp done_dangle_counter
+
 	mov a, r3
 	anl a, #0x80
 	jnz decrement_counter
@@ -159,6 +162,21 @@ update_theta:
 		jb ov, done_dangle_counter
 		mov r3, a
 	done_dangle_counter:
+
+	;mov a, r7
+	;clr c
+	;subb a, r6
+	;anl a, #gray_bits
+	;mov b, a
+	;mov a, r3
+	;add a, #0x03
+	;clr c
+	;subb a, b
+	;anl a, #0xf8 ; TODO: use gray bits
+	;orl a, b
+	;mov r3, a
+	;jz done_angle
+	;sjmp sign_extend_done
 
 	mov a, r7
 	clr c
@@ -192,6 +210,8 @@ update_theta:
 			anl a, #gray_bits
 			mov r5, #0x00 ; moving in positive direction
 		sign_extend_done:
+
+		setb p1.3
 		add a, r4 ; add to current angle
 		anl a, #theta_bits
 		mov r4, a ; store
@@ -207,6 +227,8 @@ update_theta:
 		angle_done:
 			orl a, r4
 			lcall sndchr ; send rotary number and theta to PSoC
+			clr p1.3
+			ret
 
 		; compute dtheta
 		mov a, r3
@@ -280,7 +302,6 @@ lcd:
 	lcall print
 	mov a, 12 ; r4 for register bank 1
 	lcall print_value
-
 
 	ret
 

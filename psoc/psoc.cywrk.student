@@ -294,6 +294,52 @@
 <VisibleNodeIds>
 <v>psoc</v>
 <v>psoc\Double_Pendulum</v>
+<v>psoc\Double_Pendulum\CortexM3</v>
+<v>psoc\Double_Pendulum\CortexM3\ARM_GCC_493</v>
+<v>psoc\Double_Pendulum\CortexM3\ARM_GCC_493\Debug</v>
+<v>psoc\Double_Pendulum\CortexM3\ARM_GCC_493\Debug\Listing Files</v>
+<v>psoc\Double_Pendulum\CortexM3\ARM_GCC_493\Debug\Listing Files\Button.lst</v>
+<v>psoc\Double_Pendulum\CortexM3\ARM_GCC_493\Debug\Listing Files\Button_Int.lst</v>
+<v>psoc\Double_Pendulum\CortexM3\ARM_GCC_493\Debug\Listing Files\Clock.lst</v>
+<v>psoc\Double_Pendulum\CortexM3\ARM_GCC_493\Debug\Listing Files\Cm3Start.lst</v>
+<v>psoc\Double_Pendulum\CortexM3\ARM_GCC_493\Debug\Listing Files\CyBootAsmGnu.lst</v>
+<v>psoc\Double_Pendulum\CortexM3\ARM_GCC_493\Debug\Listing Files\CyDmac.lst</v>
+<v>psoc\Double_Pendulum\CortexM3\ARM_GCC_493\Debug\Listing Files\cyfitter_cfg.lst</v>
+<v>psoc\Double_Pendulum\CortexM3\ARM_GCC_493\Debug\Listing Files\CyFlash.lst</v>
+<v>psoc\Double_Pendulum\CortexM3\ARM_GCC_493\Debug\Listing Files\CyLib.lst</v>
+<v>psoc\Double_Pendulum\CortexM3\ARM_GCC_493\Debug\Listing Files\cymetadata.lst</v>
+<v>psoc\Double_Pendulum\CortexM3\ARM_GCC_493\Debug\Listing Files\cyPm.lst</v>
+<v>psoc\Double_Pendulum\CortexM3\ARM_GCC_493\Debug\Listing Files\CySpc.lst</v>
+<v>psoc\Double_Pendulum\CortexM3\ARM_GCC_493\Debug\Listing Files\cyutils.lst</v>
+<v>psoc\Double_Pendulum\CortexM3\ARM_GCC_493\Debug\Listing Files\DAC_Debug.lst</v>
+<v>psoc\Double_Pendulum\CortexM3\ARM_GCC_493\Debug\Listing Files\DAC_Debug_PM.lst</v>
+<v>psoc\Double_Pendulum\CortexM3\ARM_GCC_493\Debug\Listing Files\DAC_Dtheta1.lst</v>
+<v>psoc\Double_Pendulum\CortexM3\ARM_GCC_493\Debug\Listing Files\DAC_Dtheta1_PM.lst</v>
+<v>psoc\Double_Pendulum\CortexM3\ARM_GCC_493\Debug\Listing Files\DAC_Theta1.lst</v>
+<v>psoc\Double_Pendulum\CortexM3\ARM_GCC_493\Debug\Listing Files\DAC_Theta1_PM.lst</v>
+<v>psoc\Double_Pendulum\CortexM3\ARM_GCC_493\Debug\Listing Files\DAC_u.lst</v>
+<v>psoc\Double_Pendulum\CortexM3\ARM_GCC_493\Debug\Listing Files\DAC_u_PM.lst</v>
+<v>psoc\Double_Pendulum\CortexM3\ARM_GCC_493\Debug\Listing Files\Debug.lst</v>
+<v>psoc\Double_Pendulum\CortexM3\ARM_GCC_493\Debug\Listing Files\Debug_Analog.lst</v>
+<v>psoc\Double_Pendulum\CortexM3\ARM_GCC_493\Debug\Listing Files\Debug_LED.lst</v>
+<v>psoc\Double_Pendulum\CortexM3\ARM_GCC_493\Debug\Listing Files\Dtheta1.lst</v>
+<v>psoc\Double_Pendulum\CortexM3\ARM_GCC_493\Debug\Listing Files\LCD.lst</v>
+<v>psoc\Double_Pendulum\CortexM3\ARM_GCC_493\Debug\Listing Files\LCD_LCDPort.lst</v>
+<v>psoc\Double_Pendulum\CortexM3\ARM_GCC_493\Debug\Listing Files\LCD_PM.lst</v>
+<v>psoc\Double_Pendulum\CortexM3\ARM_GCC_493\Debug\Listing Files\main.lst</v>
+<v>psoc\Double_Pendulum\CortexM3\ARM_GCC_493\Debug\Listing Files\Output_Signal.lst</v>
+<v>psoc\Double_Pendulum\CortexM3\ARM_GCC_493\Debug\Listing Files\PWM.lst</v>
+<v>psoc\Double_Pendulum\CortexM3\ARM_GCC_493\Debug\Listing Files\PWM_PM.lst</v>
+<v>psoc\Double_Pendulum\CortexM3\ARM_GCC_493\Debug\Listing Files\rx_int.lst</v>
+<v>psoc\Double_Pendulum\CortexM3\ARM_GCC_493\Debug\Listing Files\Theta1.lst</v>
+<v>psoc\Double_Pendulum\CortexM3\ARM_GCC_493\Debug\Listing Files\Timer0.lst</v>
+<v>psoc\Double_Pendulum\CortexM3\ARM_GCC_493\Debug\Listing Files\Timer0_PM.lst</v>
+<v>psoc\Double_Pendulum\CortexM3\ARM_GCC_493\Debug\Listing Files\Timer1.lst</v>
+<v>psoc\Double_Pendulum\CortexM3\ARM_GCC_493\Debug\Listing Files\Timer1_PM.lst</v>
+<v>psoc\Double_Pendulum\CortexM3\ARM_GCC_493\Debug\Listing Files\TX.lst</v>
+<v>psoc\Double_Pendulum\CortexM3\ARM_GCC_493\Debug\Listing Files\tx_int.lst</v>
+<v>psoc\Double_Pendulum\CortexM3\ARM_GCC_493\Debug\Listing Files\u.lst</v>
+<v>psoc\Double_Pendulum\CortexM3\ARM_GCC_493\Debug\Listing Files\UART.lst</v>
 </VisibleNodeIds>
 </CyGuid_2a325b3b-c96a-4e9f-b7a0-2c44ecb5f237>
 </TreeStates>

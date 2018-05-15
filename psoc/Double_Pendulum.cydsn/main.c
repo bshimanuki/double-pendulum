@@ -28,15 +28,15 @@ char s_print[1024];
 
 float E_top;
 float q0, q0bar, q1, v0, v1;
-float v0_buf[3], v1_buf[3]; // median filter
-int v0_buf_i = 0, v1_buf_i = 0;
+float v0_buf[3], v1_buf[3], E_buf[256]; // median filter
+int v0_buf_i = 0, v1_buf_i = 0, E_buf_i = 0;
 
 // model parameters
 float g = 9.8;
 float m1 = 0.05; // kg
 float l1 = 6 * 2.54 / 100; // meters
-float lc1 = 6 * 2.54 / 100; // meters
-float m2 = 0.03; // kg
+float lc1 = 4 * 2.54 / 100; // meters
+float m2 = 0.0001; // kg
 float l2 = 3.5 * 2.54 / 100; // meters
 float lc2 = 3.5 * 2.54 / 100; // meters
 float I1, I2;
@@ -85,10 +85,8 @@ CY_ISR(RX_INT)
                     if(v0 < 0) v0 = 1e-2;
                     else v0 = -1e-2;
                 }
-                v0_buf[v0_buf_i++] = v0;
-                if(v0_buf_i == 3) v0_buf_i = 0;
-                v0 = v0_buf[0] + v0_buf[1] + v0_buf[2] - min(v0_buf[0], min(v0_buf[1], v0_buf[2])) - max(v0_buf[0], max(v0_buf[1], v0_buf[2]));
                 */
+
                 
                 int diff = (int) theta1 - (int) last_theta1;
                 if(diff < -SEGMENTS/2) diff += SEGMENTS;
@@ -102,7 +100,10 @@ CY_ISR(RX_INT)
                     v0 *= 1. / ((1LL<<32) - Timer0_ReadCounter()) * 24e6 * (2*M_PI / SEGMENTS);
                 }
                 Timer0_WriteCounter((1LL<<32)-1);
-            } else {
+                v0_buf[v0_buf_i++] = v0;
+                if(v0_buf_i == 3) v0_buf_i = 0;
+                v0 = v0_buf[0] + v0_buf[1] + v0_buf[2] - min(v0_buf[0], min(v0_buf[1], v0_buf[2])) - max(v0_buf[0], max(v0_buf[1], v0_buf[2]));
+                } else {
                 uint8 last_theta2 = theta2;
                 theta2 = serial_buffer[0] & 0x7f;
                 dtheta2 = (int8) serial_buffer[1];
@@ -117,9 +118,6 @@ CY_ISR(RX_INT)
                     if(v1 < 0) v1 = 1e-2;
                     else v1 = -1e-2;
                 }
-                v1_buf[v1_buf_i++] = v1;
-                if(v1_buf_i == 3) v1_buf_i = 0;
-                v1 = v1_buf[0] + v1_buf[1] + v1_buf[2] - min(v1_buf[0], min(v1_buf[1], v1_buf[2])) - max(v1_buf[0], max(v1_buf[1], v1_buf[2]));
                 */
                 
                 int diff = -((int) theta2 - (int) last_theta2);
@@ -134,6 +132,9 @@ CY_ISR(RX_INT)
                     v1 *= 1. / ((1LL<<32) - Timer1_ReadCounter()) * 24e6 * (2*M_PI / SEGMENTS);
                 }
                 Timer1_WriteCounter((1LL<<32)-1);
+                v1_buf[v1_buf_i++] = v1;
+                if(v1_buf_i == 3) v1_buf_i = 0;
+                v1 = v1_buf[0] + v1_buf[1] + v1_buf[2] - min(v1_buf[0], min(v1_buf[1], v1_buf[2])) - max(v1_buf[0], max(v1_buf[1], v1_buf[2]));
             }
         }
     }
@@ -178,15 +179,17 @@ float ddE_dtdu(){
 }
 
 float lqr(){
-    float k0 = 20;
-    float k1 = 2;
+    float k0 = 30;
+    float k1 = 3;
     float tau = -k0 * q0bar + -k1 * v0;
     return tau;
 }
 
 float swingup(){
-    float k = 100;
-    float k_e = 1.4;
+    float k = 300;
+    float k_e = 1.5;
+    float k_v0 = 0;
+    float k_v1 = 0;
     /*
     float q0_shift = fmod(q0 + M_PI, 2*M_PI) - M_PI;
     if(fabs(q0_shift) < 0.2 && fabs(v0) < 0.3){
@@ -194,8 +197,21 @@ float swingup(){
         else v0 = 10;
     }
     */
-
-    float tau = -k * (ddE_dtdu() < 0 ? -1 : 1) * (E() - k_e*E_top);
+    
+    float denominator = I1 * I2 + m2 * pow(l1, 2)  * I2 - pow(m2 * l1 * lc2 * cos(q1), 2);
+    float ddv_dtdu0 = I2 / denominator;
+    float ddv_dtdu1 = (-I2 - m2 * l1 * lc2 * cos(q1)) / denominator;
+    
+    float E_med = E();
+    E_buf[E_buf_i++] = E_med;
+    if(E_buf_i == 64) E_buf_i = 0;
+    //E_med = E_buf[0] + E_buf[1] + E_buf[2] - min(E_buf[0], min(E_buf[1], E_buf[2])) - max(E_buf[0], max(E_buf[1], E_buf[2]));
+    E_med = 0;
+    int i;
+    for(i=0; i<64; ++i) E_med += E_buf[i];
+    E_med /= 64;
+    
+    float tau = -k * (ddE_dtdu() < 0 ? -1 : 1) * (E_med - k_e*E_top) - k_v0 * v0 * (ddv_dtdu0 > 0 ? 1 : 0) - k_v1 * v1 * (ddv_dtdu1 > 0 ? 1 : 0);
     // if(fabs(v0) < 0.5){
         // if(fabs(q0_shift) < 0.3){
             // // keep moving in same direction
@@ -229,11 +245,11 @@ void update(){
     DAC_Debug_SetValue(rescale(E() - E_top, E_top));
 
     DAC_Theta1_SetValue((2*theta1) ^ 0x80);
-    DAC_Dtheta1_SetValue(rescale(v0, 10));
+    DAC_Dtheta1_SetValue(rescale(v0, 20));
 
     LCD_ClearDisplay();
     sprintf(s_print, "%d t=%d dt=%d", count, theta1, dtheta1);
-    sprintf(s_print, "%d E=%.2f", count, E() - E_top);
+    sprintf(s_print, "%d E=%.2f", count, ddE_dtdu());//E() - E_top);
     LCD_PrintString(s_print);
     LCD_Position(1, 0);
     sprintf(s_print, "q0=%.2f q1=%.2f", q0, q1);
