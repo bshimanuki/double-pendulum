@@ -36,7 +36,7 @@ float g = 9.8;
 float m1 = 0.1; // kg
 float l1 = 5 * 2.54 / 100; // meters
 float lc1 = 5 * 2.54 / 100; // meters
-float m2 = 0.1; // kg
+float m2 = 0.001; // kg
 float l2 = 4 * 2.54 / 100; // meters
 float lc2 = 4 * 2.54 / 100; // meters
 float I1, I2;
@@ -82,7 +82,7 @@ uint8 rescale(float x, float limit){
     return value;
 }
 
-float E(float _q0, float _q1, float _v0, float _v1){
+float _E(float _q0, float _q1, float _v0, float _v1){
     float K = 0.5 * (
             I1 * pow(_v0, 2)
             + I2 * pow(_v0 + _v1, 2)
@@ -92,22 +92,22 @@ float E(float _q0, float _q1, float _v0, float _v1){
     float U = -m1 * g * lc1 * cos(_q0) - m2 * g * (l1 * cos(_q0) + lc2 * cos(_q0 + _q1));
     return K + U;
 }
-float E(){ return E(q0, q1, v0, v1); }
+float E(){ return _E(q0, q1, v0, v1); }
 
 float ddE_dtdu(){
     // ddv_dtdu = np.linalg.lstsq(M, B[:,0])[0]
-    float denominator = I1 * I2 + m2 * pow(l1, 2)  * I2 - pow(m2 * l1 * lc2 * cos(_q1), 2);
-    ddv_dtdu0 = I2 / denominator;
-    ddv_dtdu1 = (-I2 - m2 * l1 * lc2 * cos(_q1)) / denominator;
+    float denominator = I1 * I2 + m2 * pow(l1, 2)  * I2 - pow(m2 * l1 * lc2 * cos(q1), 2);
+    float ddv_dtdu0 = I2 / denominator;
+    float ddv_dtdu1 = (-I2 - m2 * l1 * lc2 * cos(q1)) / denominator;
     // ddE_dtdu = 1./2 * (np.dot(ddv_dtdu.T, np.dot(M, v)) + np.dot(v.T, B[:,0]))
     float ddE = 0.5 * (
-            I1 * ddv_dtdu0 * _v0
-            + I2 * (ddv_dtdu0 + ddv_dtdu1) * (_v0 + _v1)
-            + m2 * pow(l1, 2) * ddv_dtdu0 * _v0
-            + m2 * l1 * lc2 * cos(_q1) * (2 * ddv_dtdu0 *_v0 + ddv_dtdu0 * _v1 + ddv_dtdu1 * _v0)
+            I1 * ddv_dtdu0 * v0
+            + I2 * (ddv_dtdu0 + ddv_dtdu1) * (v0 + v1)
+            + m2 * pow(l1, 2) * ddv_dtdu0 * v0
+            + m2 * l1 * lc2 * cos(q1) * (2 * ddv_dtdu0 *v0 + ddv_dtdu0 * v1 + ddv_dtdu1 * v0)
 
-            + _v0
-            )
+            + v0
+            );
     return ddE;
 }
 
@@ -129,7 +129,7 @@ float swingup(){
     }
     */
 
-    float tau = -k * (v0 < 0 ? -1 : 1) * (E() - k_e*E_top);
+    float tau = -k * (ddE_dtdu() < 0 ? -1 : 1) * (E() - k_e*E_top);
     // if(fabs(v0) < 0.5){
         // if(fabs(q0_shift) < 0.3){
             // // keep moving in same direction
@@ -174,7 +174,7 @@ void update(){
         tau = swingup();
     }
 
-    count = rescale(tau, 5);
+    uint8 count = rescale(tau, 5);
     PWM_WriteCompare(count);
     DAC_u_SetValue(count);
     DAC_Debug_SetValue(rescale(E() - E_top, E_top));
@@ -184,10 +184,14 @@ void update(){
 
     LCD_ClearDisplay();
     sprintf(s_print, "%d t=%d dt=%d", count, _theta1, _dtheta1);
-    sprintf(s_print, "%d E=%.2f", count, E() - E_top);
+    sprintf(s_print, "%x %.2f %.2f", count, E() - E_top, ddE_dtdu());
+    //LCD_PrintString(s_print);
+    //LCD_Position(1, 0);
+    sprintf(s_print, "q0=%.2f v0=%.2f", q0, v0);
     LCD_PrintString(s_print);
     LCD_Position(1, 0);
-    sprintf(s_print, "q0=%.2f v0=%.2f", q0, v0);
+    sprintf(s_print, "%d t=%d dt=%d", count, theta2, dtheta2);
+    //sprintf(s_print, "q1=%.2f v1=%.2f", q1, v1);
     LCD_PrintString(s_print);
 }
 
@@ -219,7 +223,7 @@ int main()
     UART_ClearRxBuffer();
 
     // initialize computed constants
-    E_top = E(M_PI, 0, 0, 0);
+    E_top = _E(M_PI, 0, 0, 0);
     I1 = m1 * pow(lc1, 2);
     I2 = m2 * pow(lc2, 2);
 

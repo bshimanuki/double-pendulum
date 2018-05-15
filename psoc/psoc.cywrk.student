@@ -198,6 +198,15 @@
 <v>psoc\Double_Pendulum\Generated_Source\PSoC5\cy_boot\CyFlash.c</v>
 <v>psoc\Double_Pendulum\Generated_Source\PSoC5\cy_boot\CyFlash.h</v>
 <v>psoc\Double_Pendulum\Generated_Source\PSoC5\cy_boot\CyLib.c</v>
+<v>psoc\Double_Pendulum\Generated_Source\PSoC5\cy_boot\CyLib.h</v>
+<v>psoc\Double_Pendulum\Generated_Source\PSoC5\cy_boot\cypins.h</v>
+<v>psoc\Double_Pendulum\Generated_Source\PSoC5\cy_boot\cyPm.c</v>
+<v>psoc\Double_Pendulum\Generated_Source\PSoC5\cy_boot\cyPm.h</v>
+<v>psoc\Double_Pendulum\Generated_Source\PSoC5\cy_boot\CySpc.c</v>
+<v>psoc\Double_Pendulum\Generated_Source\PSoC5\cy_boot\CySpc.h</v>
+<v>psoc\Double_Pendulum\Generated_Source\PSoC5\cy_boot\cytypes.h</v>
+<v>psoc\Double_Pendulum\Generated_Source\PSoC5\cy_boot\cyutils.c</v>
+<v>psoc\Double_Pendulum\Generated_Source\PSoC5\DAC_Debug</v>
 </VisibleNodeIds>
 </CyGuid_2a325b3b-c96a-4e9f-b7a0-2c44ecb5f237>
 <CyGuid_2a325b3b-c96a-4e9f-b7a0-2c44ecb5f237 type_name="CyDesigner.Common.Base.Controls.CyTreeViewState" version="1" SelectedNodeId="">

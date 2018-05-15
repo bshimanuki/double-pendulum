@@ -50,6 +50,7 @@ init:
 	mov tmod, #22h
 	mov th0, #0x00
 	mov th1, #0xfd ; set 9600 baud
+	; mov pcon, #0x80
 	mov scon, #0x52 ; set serial for 8 bit data, ready to send initially
 	setb it0 ; set tcon.0 for edge triggered interrupts
 	setb tr1 ; start timer 1 for serial communication
@@ -194,7 +195,8 @@ update_theta:
 		add a, r4 ; add to current angle
 		anl a, #theta_bits
 		mov r4, a ; store
-		mov r6, 7 ; move new decoded gray code to old
+		mov a, r7
+		mov r6, a ; move new decoded gray code to old
 
 		jb rs0, angle1
 		angle0:
@@ -267,11 +269,18 @@ lcd:
 	mov a, #' '
 	lcall print_chr
 
-	; print dtheta2 to LCD
-	mov dptr, #s_dtheta1
+	; print dtheta1 to LCD
+	; mov dptr, #s_dtheta1
+	; lcall print
+	; mov a, r5
+	; lcall print_value
+
+	; print theta2 to LCD
+	mov dptr, #s_theta2
 	lcall print
-	mov a, r5
+	mov a, 12 ; r4 for register bank 1
 	lcall print_value
+
 
 	ret
 
