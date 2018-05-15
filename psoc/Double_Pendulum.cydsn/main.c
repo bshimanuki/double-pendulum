@@ -28,7 +28,7 @@ char s_print[1024];
 
 float E_top;
 float q0, q0bar, q1, v0, v1;
-float v0_buf[3], v1_buf; // median filter
+float v0_buf[3], v1_buf[3]; // median filter
 int v0_buf_i = 0, v1_buf_i = 0;
 
 // model parameters
@@ -82,8 +82,10 @@ CY_ISR(RX_INT)
                 theta2 = serial_buffer[0] & 0x7f;
                 dtheta2 = (int8) serial_buffer[1];
 
-                q1 = theta2 * 2*M_PI / SEGMENTS;
-                if(dtheta2) v1 = 1 / (dtheta2 / (11.0592e6 / 12. / 256. / 2.)) * (2*M_PI / SEGMENTS); // 256 counts per R31JP interrupt, 2 interrupts per bit
+                // q1, v1 sensors are in opposite direction
+                if(theta2) q1 = 2*M_PI - theta2 * 2*M_PI / SEGMENTS;
+                else q1 = 0;
+                if(dtheta2) v1 = -1 / (dtheta2 / (11.0592e6 / 12. / 256. / 2.)) * (2*M_PI / SEGMENTS); // 256 counts per R31JP interrupt, 2 interrupts per bit
                 else {
                     // give v0 a sign
                     if(v1 < 0) v1 = 1e-2;
@@ -93,6 +95,7 @@ CY_ISR(RX_INT)
                 if(v1_buf_i == 3) v1_buf_i = 0;
                 v1 = v1_buf[0] + v1_buf[1] + v1_buf[2] - min(v1_buf[0], min(v1_buf[1], v1_buf[2])) - max(v1_buf[0], max(v1_buf[1], v1_buf[2]));
             }
+        }
     }
 }
 
@@ -191,14 +194,13 @@ void update(){
     LCD_ClearDisplay();
     sprintf(s_print, "%d t=%d dt=%d", count, theta1, dtheta1);
     sprintf(s_print, "%d E=%.2f", count, E() - E_top);
-    //LCD_PrintString(s_print);
-    //LCD_Position(1, 0);
-    sprintf(s_print, "q0=%.2f v0=%.2f", q0, v0);
     LCD_PrintString(s_print);
     LCD_Position(1, 0);
-    sprintf(s_print, "%d t=%d dt=%d", count, theta2, dtheta2);
-    //sprintf(s_print, "q1=%.2f v1=%.2f", q1, v1);
+    sprintf(s_print, "q0=%.2f q1=%.2f", q0, q1);
     LCD_PrintString(s_print);
+    //LCD_Position(1, 0);
+    //sprintf(s_print, "v0=%.2f v1=%.2f", v0, v1);
+    //LCD_PrintString(s_print);
 }
 
 CY_ISR(BUTTON_INT)
