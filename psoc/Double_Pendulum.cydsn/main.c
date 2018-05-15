@@ -33,12 +33,12 @@ int v0_buf_i = 0, v1_buf_i = 0;
 
 // model parameters
 float g = 9.8;
-float m1 = 0.1; // kg
-float l1 = 5 * 2.54 / 100; // meters
-float lc1 = 5 * 2.54 / 100; // meters
-float m2 = 0.001; // kg
-float l2 = 4 * 2.54 / 100; // meters
-float lc2 = 4 * 2.54 / 100; // meters
+float m1 = 0.05; // kg
+float l1 = 6 * 2.54 / 100; // meters
+float lc1 = 6 * 2.54 / 100; // meters
+float m2 = 0.03; // kg
+float l2 = 3.5 * 2.54 / 100; // meters
+float lc2 = 3.5 * 2.54 / 100; // meters
 float I1, I2;
 
 float min(float a, float b){return a < b ? a : b;}
@@ -234,11 +234,11 @@ void update(){
     LCD_ClearDisplay();
     sprintf(s_print, "%d t=%d dt=%d", count, theta1, dtheta1);
     sprintf(s_print, "%d E=%.2f", count, E() - E_top);
-    //LCD_PrintString(s_print);
-    //LCD_Position(1, 0);
-    sprintf(s_print, "q0=%.2f q1=%.2f", q0, q1);
     LCD_PrintString(s_print);
     LCD_Position(1, 0);
+    sprintf(s_print, "q0=%.2f q1=%.2f", q0, q1);
+    //LCD_PrintString(s_print);
+    //LCD_Position(1, 0);
     sprintf(s_print, "v0=%.2f v1=%.2f", v0, v1);
     LCD_PrintString(s_print);
 }
