@@ -48,9 +48,9 @@ init:
 	; set timer 0 in mode 2 (8 bit autoreload)
 	; set timer 1 in mode 2 (8 bit autoreload)
 	mov tmod, #22h
-	mov th0, #0x00
-	mov th1, #0xfd ; set 9600 baud
-	; mov pcon, #0x80
+	mov th0, #0x80
+	mov th1, #0xff ; set 57600 baud
+	mov pcon, #0x80
 	mov scon, #0x52 ; set serial for 8 bit data, ready to send initially
 	setb it0 ; set tcon.0 for edge triggered interrupts
 	setb tr1 ; start timer 1 for serial communication
@@ -81,8 +81,8 @@ init:
 
 	; tell PSoC to restart
 	mov a, #0xff
-	lcall sndchr
-	lcall sndchr
+	;lcall sndchr
+	;lcall sndchr
 	ret
 
 ; initialize variables for the rotary encoder specified by the register bank
@@ -251,7 +251,7 @@ update_theta:
 					mov r2, #0xfe
 				done_reset_counter:
 		mov a, r5
-		lcall sndchr
+		;lcall sndchr
 
 	done_angle:
 	ret

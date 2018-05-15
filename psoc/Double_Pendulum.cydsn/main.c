@@ -53,7 +53,7 @@ CY_ISR(RX_INT)
         return;
     }
     serial_buffer[sbuf_i++] = data;
-    if(sbuf_i == 2){
+    if(sbuf_i == 1){
         sbuf_i = 0;
         new_data = 1;
         if(serial_buffer[0] == 0xff && serial_buffer[1] == 0xff){ // reset code
@@ -61,13 +61,24 @@ CY_ISR(RX_INT)
             theta2 = 0;
             dtheta1 = 0;
             dtheta2 = 0;
+            q0 = 0;
+            q1 = 0;
+            v0 = 0;
+            v1 = 0;
+            memset(v0_buf, 0, sizeof(v0_buf));
+            memset(v1_buf, 0, sizeof(v1_buf));
+            v0_buf_i = 0;
+            v1_buf_i = 0;
         } else {
             if(!(serial_buffer[0] & 0x80)){
+                uint8 last_theta1 = theta1;
                 theta1 = serial_buffer[0] & 0x7f;
                 dtheta1 = (int8) serial_buffer[1];
 
                 q0 = theta1 * 2*M_PI / SEGMENTS;
                 q0bar = q0 - M_PI;
+                
+                /*
                 if(dtheta1) v0 = 1 / (dtheta1 / (11.0592e6 / 12. / 256. / 2.)) * (2*M_PI / SEGMENTS); // 256 counts per R31JP interrupt, 2 interrupts per bit
                 else {
                     // give v0 a sign
@@ -77,14 +88,29 @@ CY_ISR(RX_INT)
                 v0_buf[v0_buf_i++] = v0;
                 if(v0_buf_i == 3) v0_buf_i = 0;
                 v0 = v0_buf[0] + v0_buf[1] + v0_buf[2] - min(v0_buf[0], min(v0_buf[1], v0_buf[2])) - max(v0_buf[0], max(v0_buf[1], v0_buf[2]));
-
+                */
+                
+                int diff = (int) theta1 - (int) last_theta1;
+                if(diff < -SEGMENTS/2) diff += SEGMENTS;
+                if(diff > SEGMENTS/2) diff -= SEGMENTS;
+                if(v0 * diff < 0){
+                    if(v0 < 0) v0 = 1e-2;
+                    else v0 = -1e-2;
+                } else {
+                    if(diff < 0) v0 = -1;
+                    else v0 = 1;
+                    v0 *= 1. / ((1LL<<32) - Timer0_ReadCounter()) * 24e6 * (2*M_PI / SEGMENTS);
+                }
+                Timer0_WriteCounter((1LL<<32)-1);
             } else {
+                uint8 last_theta2 = theta2;
                 theta2 = serial_buffer[0] & 0x7f;
                 dtheta2 = (int8) serial_buffer[1];
 
                 // q1, v1 sensors are in opposite direction
                 if(theta2) q1 = 2*M_PI - theta2 * 2*M_PI / SEGMENTS;
                 else q1 = 0;
+                /*
                 if(dtheta2) v1 = -1 / (dtheta2 / (11.0592e6 / 12. / 256. / 2.)) * (2*M_PI / SEGMENTS); // 256 counts per R31JP interrupt, 2 interrupts per bit
                 else {
                     // give v0 a sign
@@ -94,6 +120,20 @@ CY_ISR(RX_INT)
                 v1_buf[v1_buf_i++] = v1;
                 if(v1_buf_i == 3) v1_buf_i = 0;
                 v1 = v1_buf[0] + v1_buf[1] + v1_buf[2] - min(v1_buf[0], min(v1_buf[1], v1_buf[2])) - max(v1_buf[0], max(v1_buf[1], v1_buf[2]));
+                */
+                
+                int diff = -((int) theta2 - (int) last_theta2);
+                if(diff < -SEGMENTS/2) diff += SEGMENTS;
+                if(diff > SEGMENTS/2) diff -= SEGMENTS;
+                if(v1 * diff < 0){
+                    if(v1 < 0) v1 = 1e-2;
+                    else v1 = -1e-2;
+                } else {
+                    if(diff < 0) v1 = -1;
+                    else v1 = 1;
+                    v1 *= 1. / ((1LL<<32) - Timer1_ReadCounter()) * 24e6 * (2*M_PI / SEGMENTS);
+                }
+                Timer1_WriteCounter((1LL<<32)-1);
             }
         }
     }
@@ -194,13 +234,13 @@ void update(){
     LCD_ClearDisplay();
     sprintf(s_print, "%d t=%d dt=%d", count, theta1, dtheta1);
     sprintf(s_print, "%d E=%.2f", count, E() - E_top);
-    LCD_PrintString(s_print);
-    LCD_Position(1, 0);
+    //LCD_PrintString(s_print);
+    //LCD_Position(1, 0);
     sprintf(s_print, "q0=%.2f q1=%.2f", q0, q1);
     LCD_PrintString(s_print);
-    //LCD_Position(1, 0);
-    //sprintf(s_print, "v0=%.2f v1=%.2f", v0, v1);
-    //LCD_PrintString(s_print);
+    LCD_Position(1, 0);
+    sprintf(s_print, "v0=%.2f v1=%.2f", v0, v1);
+    LCD_PrintString(s_print);
 }
 
 CY_ISR(BUTTON_INT)
@@ -214,7 +254,9 @@ int main()
     LCD_Start();                        // initialize lcd
     LCD_ClearDisplay();
     PWM_Start();
-    
+    Timer0_Start();
+    Timer1_Start();
+   
     DAC_Theta1_Start();
     DAC_Dtheta1_Start();
     DAC_u_Start();
@@ -235,6 +277,7 @@ int main()
     I1 = m1 * pow(lc1, 2);
     I2 = m2 * pow(lc2, 2);
 
+    update();
     for(;;)
     {
         if(new_data){
