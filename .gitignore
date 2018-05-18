@@ -9,6 +9,7 @@
 # LaTeX compiled files
 *.aux
 *.bbl
+*.bcf
 *.blg
 *.brf
 *.fdb_latexmk
@@ -22,6 +23,7 @@
 *.lot
 *.out
 *.pre
+*.run.xml
 *.synctex.gz
 *.synctex.gz(busy)
 *.toc

@@ -38,9 +38,14 @@ class Controller(VectorSystem):
         self.lc2 = self.l2
 
         self.K, self.S = self._LQR()
+        self.K_half, self.S_half = self._LQR_half()
         q_f = np.array([math.pi, 0])
         qd_f = np.array([0, 0])
         # print(self.LQR)
+
+        self.lqr_cond = False
+        self.extend_cond = False
+        self.half_cond = False
 
     def evaluate_f(self, x, u):
         # Use the manipulator equation to get qdd.
@@ -107,6 +112,19 @@ class Controller(VectorSystem):
         # K = np.array([[-149.84436802, -136.09344666,  -63.96348586,  -40.20875713]])
         return (K, S)
 
+    def _LQR_half(self):
+        A, B = self._GetLinearizedDynamics()
+        A = A[::2,::2]
+        B = B[::2]
+        Q = np.array([
+            [10, 0],
+            [0, 2],
+        ])
+        R = np.array([[1e-1]])
+        S = scipy.linalg.solve_continuous_are(A, B, Q, R)
+        K = np.linalg.lstsq(R, np.dot(B.T, S))[0]
+        return (K, S)
+
     def lqr_controller(self, x):
         q = x[:2]
         v = x[-2:]
@@ -116,7 +134,10 @@ class Controller(VectorSystem):
         x[0] -= np.pi
         x[:2] = mod_angle(x[:2])
         K, S = self.K, self.S
-        u_err = np.dot(-K, x).item()
+        if abs(x[0]) < np.pi/2 and abs(x[0] + x[1]) < np.pi/2:
+            u_err = np.dot(-K, x).item()
+        else:
+            u_err = 0
         if _LINEARIZE_GRAVITY:
             a_sys = np.linalg.lstsq(M, -Cv)[0]
             u_sys = -a_sys[0] / np.linalg.lstsq(M, B[:,0])[0][0]
@@ -126,7 +147,91 @@ class Controller(VectorSystem):
             u_sys = -a_sys[0] / np.linalg.lstsq(M, B[:,0])[0][0]
             # print(x, u_err, u_sys, tauG)
             u = u_err + u_sys
+        # print(q, v, u)
         return u
+
+    def extend_controller(self, x):
+        q = x[:2]
+        v = x[-2:]
+        g, m1, l1, lc1, m2, l2, lc2 = self.g, self.m1, self.l1, self.lc1, self.m2, self.l2, self.lc2
+        (M, Cv, tauG, B) = ManipulatorDynamics(self.tree, q, v)
+
+        x = np.array(x)
+        x[0] -= np.pi
+        x[:2] = mod_angle(x[:2])
+        q = x[:2]
+        v = x[-2:]
+
+        tau_limit = 50
+        if q[0] * (q[0]+q[1]) > 0:
+            tau = np.sign(q[0]) * tau_limit
+        elif q[0] * v[0] > 0:
+            tau = -np.sign(v[0]) * tau_limit
+        # elif q[0] > 0.01 and abs(v[0] / q[0]) < 0.05 and abs(q[0] + q[1]) / min(np.pi/4, abs(q[0])) < 1./8:
+            # tau = np.sign(q[0]) * tau_limit
+        else:
+            kq = 200
+            kv0 = 0
+            kv1 = 5
+            # tau = kq * (q[0] + 0.55 * q[1])
+            tau = np.dot(-self.K, x)
+            # tau += - kv0 * v[0] + kv1 * (v[0] + v[1])
+
+            # tauG = m1 * g * lc1 * sin(q[0]) + m2 * g * cos(q[0] + q[1]) * l1 * -sin(q[1]) + m2 * v[1]**2 / lc2 * l1 * sin(q[1])
+            tauG = np.linalg.lstsq(M, tauG - Cv)[0][0] / np.linalg.lstsq(M, B[:,0])[0][0]
+            # tau += -tauG
+            if (tau + tauG) * q[0] > 0:
+                tau = -tauG
+
+        return tau
+
+    def half_controller(self, x):
+        q = x[:2]
+        v = x[-2:]
+        g, m1, l1, lc1, m2, l2, lc2 = self.g, self.m1, self.l1, self.lc1, self.m2, self.l2, self.lc2
+        (M, Cv, tauG, B) = ManipulatorDynamics(self.tree, q, v)
+
+        x = np.array(x)
+        x[0] -= np.pi
+        x[:2] = mod_angle(x[:2])
+        q = x[:2]
+        v = x[-2:]
+
+        tau_limit = 50
+        kwall = 400
+        ke = 0.5
+
+        xf = np.array(x)
+        # xf[1] = x[0] + x[1]
+        # xf[3] = (1 + (l1 * m2 * lc2 * cos(x[1])) / (m2 * lc2**2)) * x[2] + x[3]
+        xf[3] = 3./2 * x[2] + x[3]
+        xf[0] += np.pi
+        xf[2] = 0
+
+        E_top = self.E(np.array([np.pi,0,0,0]))
+        E_curl = self.E(xf) - E_top
+
+        thresh = 0.5
+        if E_curl > 0 and v[0] * v[1] > 0:
+            tau = -kwall * np.sign(v[0])
+        elif abs(q[0]) > thresh and q[0] * v[0] > 0:
+            tau = -kwall * np.sign(q[0]) * (abs(q[0]) - thresh)
+        else:
+            ddv0_dtdu, ddv1_dtdu = np.linalg.lstsq(M, B[:,0])[0]
+            # tau = ke * np.sign(cos(np.pi+q[0] + q[1])) * (v[0] + v[1]) * E_curl
+            # tau = ke * np.sign(v[0] + v[1]) * E_curl
+            a0, a1 = np.linalg.lstsq(M, -Cv + tauG)[0]
+            tau = ke * np.sign(a0 + a1) * E_curl
+            tau += max(0, E_curl/E_top - 0.8) * np.dot(-self.K_half, np.array([q[0], v[0]]))
+            if tau * q[0] > 0:
+                tau *= max(0, thresh - abs(q[0]))
+            # print(x, E_curl, tau, xf)
+        # print(x, E_curl, tau)
+
+        tauG = np.linalg.lstsq(M, tauG - Cv)[0][0] / np.linalg.lstsq(M, B[:,0])[0][0]
+        tau += -tauG
+
+        return tau
 
     def E(self, state):
         q = state[:2]
@@ -168,37 +273,52 @@ class Controller(VectorSystem):
         # E2_curl = E - E2
 
         ddv0_dtdu, ddv1_dtdu = np.linalg.lstsq(M, B[:,0])[0]
-        if ddv0_dtdu == 0:
-            ddv0_dtdu = 1
-        if ddv1_dtdu == 0:
-            ddv1_dtdu = 1
+        # if ddv0_dtdu == 0:
+            # ddv0_dtdu = 1
+        # if ddv1_dtdu == 0:
+            # ddv1_dtdu = 1
         q0bar = mod_angle(q[0] - np.pi)
 
-        K_E = 1
+        K_E = 0.5
         K_q0 = 0.0005
-        K_v0 = 0#0.0001
-        K_v1 = 0.1
+        K_v0 = 0.01
+        K_v1 = 0.8
 
-        tau = -K_E * E_curl * np.sign(ddE_dtdu) - (K_q0 * np.sin(q0bar)*np.exp(-q0bar**2) + K_v0 * v[0]) * np.sign(ddv0_dtdu) - K_v1 * v[1] * np.sign(ddv1_dtdu)
+        tau = -K_E * E_curl * ddE_dtdu - (K_q0 * np.sin(q0bar)*np.exp(-q0bar**2) + K_v0 * v[0]) * ddv0_dtdu - K_v1 * v[1] * ddv1_dtdu
 
         max_tau = 10
         tau = np.clip(tau, -max_tau, max_tau)
+        # print(tau, q, v, E, ddE_dtdu, ddv0_dtdu, ddv1_dtdu)
         return tau
 
     def _GetTorque(self, state):
         g, m1, l1, lc1, m2, l2, lc2 = self.g, self.m1, self.l1, self.lc1, self.m2, self.l2, self.lc2
         # Extract manipulator dynamics.
-        q = state[:2]
+        q = mod_angle(state[:2])
         v = state[-2:]
 
-        if True or self.calcV(state) < 10:
+        # if self.calcV(state) < 10:
+        q0bar = mod_angle(q[0] - np.pi)
+        self.lqr_cond |= self.calcV(state) < 100
+        # lqr_cond = abs(q0bar) < 1 and abs(q0bar+q[1]) < 0.5 and abs(v[0] + v[1]) < 1
+        # lqr_cond = False
+        # extend_cond = False
+        # half_cond = abs(q0bar) < 1
+        self.half_cond |= self.calcV_half(state) < 10
+        # half_cond = True
+        if self.lqr_cond:
             tau = self.lqr_controller(state)
+        elif self.extend_cond:
+            tau = self.extend_controller(state)
+        elif self.half_cond:
+            tau = self.half_controller(state)
         else:
             tau = self.swingup_controller(state)
+        # print(state, tau, lqr_cond, half_cond)
 
         tau_limit = 50
         tau = np.clip(tau, -tau_limit, tau_limit)
-        # print(tau)
+        # print(q, v, self.lqr_cond, self.half_cond, tau)
         return tau
 
     def calcV(self, x):
@@ -206,6 +326,12 @@ class Controller(VectorSystem):
         x[0] -= np.pi
         x[:2] = mod_angle(x[:2])
         return np.dot(x.T, np.dot(self.S, x)).item()
+
+    def calcV_half(self, x):
+        x = np.array(x[::2])
+        x[0] -= np.pi
+        x[0] = mod_angle(x[0])
+        return np.dot(x.T, np.dot(self.S_half, x)).item()
 
     def _DoCalcVectorOutput(self, context, double_pend_state, unused, torque):
         # Extract manipulator dynamics.

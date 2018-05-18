@@ -1,14 +1,3 @@
-/* ========================================
- *
- * Copyright YOUR COMPANY, THE YEAR
- * All Rights Reserved
- * UNPUBLISHED, LICENSED SOFTWARE.
- *
- * CONFIDENTIAL AND PROPRIETARY INFORMATION
- * WHICH IS THE PROPERTY OF your company.
- *
- * ========================================
-*/
 #include <project.h>
 #include <stdio.h>
 #include <math.h>
@@ -44,6 +33,7 @@ float I1, I2;
 float min(float a, float b){return a < b ? a : b;}
 float max(float a, float b){return a > b ? a : b;}
 
+// set all the global state variables when state is received from the R31JP
 CY_ISR(RX_INT)
 {
     uint8 data = UART_ReadRxData();
@@ -140,6 +130,7 @@ CY_ISR(RX_INT)
     }
 }
 
+// clip a value to +/- limit and then rescale to a uint8 in the 0-255 range
 uint8 rescale(float x, float limit){
     float x_rescaled = x / limit * 0x80 + 0x80;
     uint8 value;
@@ -149,6 +140,7 @@ uint8 rescale(float x, float limit){
     return value;
 }
 
+// compute the energy of the system
 float _E(float _q0, float _q1, float _v0, float _v1){
     float K = 0.5 * (
             I1 * pow(_v0, 2)
@@ -161,6 +153,7 @@ float _E(float _q0, float _q1, float _v0, float _v1){
 }
 float E(){ return _E(q0, q1, v0, v1); }
 
+// compute d^2 E / dt du to determine how the energy of the system will change with u
 float ddE_dtdu(){
     // ddv_dtdu = np.linalg.lstsq(M, B[:,0])[0]
     float denominator = I1 * I2 + m2 * pow(l1, 2)  * I2 - pow(m2 * l1 * lc2 * cos(q1), 2);
@@ -185,18 +178,14 @@ float lqr(){
     return tau;
 }
 
+// try to make the energy of the system match the energy of the fixed point
 float swingup(){
     float k = 300;
+    // try to increase the energy beyond the calculated value to account for the energy lost from friction of the motor.
+    // should probably just add friction to the model but that's harder
     float k_e = 1.5;
     float k_v0 = 0;
     float k_v1 = 0;
-    /*
-    float q0_shift = fmod(q0 + M_PI, 2*M_PI) - M_PI;
-    if(fabs(q0_shift) < 0.2 && fabs(v0) < 0.3){
-        if(v0 < 0) v0 = -10;
-        else v0 = 10;
-    }
-    */
     
     float denominator = I1 * I2 + m2 * pow(l1, 2)  * I2 - pow(m2 * l1 * lc2 * cos(q1), 2);
     float ddv_dtdu0 = I2 / denominator;
@@ -205,31 +194,22 @@ float swingup(){
     float E_med = E();
     E_buf[E_buf_i++] = E_med;
     if(E_buf_i == 64) E_buf_i = 0;
-    //E_med = E_buf[0] + E_buf[1] + E_buf[2] - min(E_buf[0], min(E_buf[1], E_buf[2])) - max(E_buf[0], max(E_buf[1], E_buf[2]));
     E_med = 0;
     int i;
     for(i=0; i<64; ++i) E_med += E_buf[i];
     E_med /= 64;
     
     float tau = -k * (ddE_dtdu() < 0 ? -1 : 1) * (E_med - k_e*E_top) - k_v0 * v0 * (ddv_dtdu0 > 0 ? 1 : 0) - k_v1 * v1 * (ddv_dtdu1 > 0 ? 1 : 0);
-    // if(fabs(v0) < 0.5){
-        // if(fabs(q0_shift) < 0.3){
-            // // keep moving in same direction
-            // if(v0 < 0) tau += -5;
-            // else tau += 5;
-        // } else {
-            // // help gravity
-            // // if(q0_shift < 0) tau += 5;
-            // // else tau += -5;
-        // }
-    // }
     return tau;
 }
 
-int in_roc(){
+// returns true to use the stabilization strategy and false to use the swing up strategy
+bool in_roc(){
     return fabs(q0bar) < 0.5;
 }
 
+// compute the applied torque (with a gain to scale to the duty cycle for the motor)
+// also display information to the LCD and analog pins
 void update(){
 
     float tau;

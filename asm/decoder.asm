@@ -163,21 +163,6 @@ update_theta:
 		mov r3, a
 	done_dangle_counter:
 
-	;mov a, r7
-	;clr c
-	;subb a, r6
-	;anl a, #gray_bits
-	;mov b, a
-	;mov a, r3
-	;add a, #0x03
-	;clr c
-	;subb a, b
-	;anl a, #0xf8 ; TODO: use gray bits
-	;orl a, b
-	;mov r3, a
-	;jz done_angle
-	;sjmp sign_extend_done
-
 	mov a, r7
 	clr c
 	subb a, r6
@@ -227,8 +212,7 @@ update_theta:
 		angle_done:
 			orl a, r4
 			lcall sndchr ; send rotary number and theta to PSoC
-			clr p1.3
-			ret
+		clr p1.3
 
 		; compute dtheta
 		mov a, r3
@@ -273,6 +257,7 @@ update_theta:
 					mov r2, #0xfe
 				done_reset_counter:
 		mov a, r5
+		; would send 1/dtheta*C for some C, but the PSoC now calculates this to reduce serial usage
 		;lcall sndchr
 
 	done_angle:
