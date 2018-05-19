@@ -334,70 +334,8 @@ class Controller(VectorSystem):
         return np.dot(x.T, np.dot(self.S_half, x)).item()
 
     def _DoCalcVectorOutput(self, context, double_pend_state, unused, torque):
-        # Extract manipulator dynamics.
-        # q = state[:2]
-        # v = state[-2:]
-
-        # Control gains for stabilizing the second joint.
-        # kp = 1
-        # kd = .1
-
-        # Desired pendulum parameters.
-        # length = 2.
-        # b = .1
-
-        # Cancel double pend dynamics and inject single pend dynamics.
-        # torque[:] = Cv - tauG + \
-            # M.dot([-self.g / length * math.sin(q[0]) - b * v[0],
-                   # -kp * q[1] + kd * v[1]])
-
         torque[0] = self._GetTorque(double_pend_state)
         torque[1] = 0
-
-    def xin_controller(self, state):
-        '''
-        From Xin et al. Broken implementation.
-        '''
-        g, m1, l1, lc1, m2, l2, lc2 = self.g, self.m1, self.l1, self.lc1, self.m2, self.l2, self.lc2
-        q = state[:2]
-        v = state[-2:]
-
-        (M, Cv, tauG, B) = ManipulatorDynamics(self.tree, q, v)
-
-        theta_1 = M[0,0] - M[0,1] - M[1,0] + M[1,1]
-        theta_2 = M[1,1]
-        # theta_3 = (M[0,1] - theta_2) / cos(q[1])
-        # theta_5 = tauG[1] / (g * sin(q[0] + q[1]))
-        # theta_4 = (tauG[0] - tauG[1]) / (g * sin(q[0]))
-        theta_3 = m2 * l1 * (l2/2)
-        theta_4 = m1 * (l1/2) + m2 * l1
-        theta_5 = m2 * (l2/2)
-
-        E = 1./2 * np.dot(v.T, np.dot(M, v)) + theta_4 * g * -cos(q[0]) + theta_5 * g * -cos(q[0]+q[1])
-        E_top = theta_4 * g + theta_5 * g
-        E_curl = E - E_top
-
-        k_p = 5.5
-        k_d = 0.5
-        k_e = 1
-
-        condition =  abs(E_curl) < min(2 * theta_4 * g, 2 * theta_5 * g, k_d / (k_e * theta_1))
-
-        f = theta_2 * theta_3 * (v[0]+v[1])**2 * sin(q[1]) \
-            + theta_3**2 * v[0]**2 * cos(q[1]) * sin(q[1]) \
-            - theta_2 * theta_4 * g * sin(q[0]) \
-            + theta_3 * theta_5 * g * cos(q[1]) * sin(q[0]+q[1])
-
-        q0_d = math.pi
-        q_curl = q[0] - q0_d
-
-        tau = (-k_d * f - (theta_1 * theta_2 - theta_3**2 * cos(q[1])**2) * (v[0] + k_p * q_curl)) \
-            / ((theta_1 * theta_2 - theta_3**2 * cos(q[1])**2) * k_e * E_curl + k_d * theta_2)
-
-        p = np.dot(M, v)
-        du = -tauG * v
-
-        return tau
 
 def make_controller(gravity=9.8):
     tree = RigidBodyTree(FindResource("double_pendulum/double_pendulum.urdf"),
